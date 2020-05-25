@@ -2,6 +2,7 @@
 
 TODO:
 - first get discord api keys/testing servers.
+- tidy up clients (dataclasses might be better than named-tuples[type-safety, default-values, can use docstrings to document fields better])
 - database
 Need a simple db schema to store discord users, and map them to a UUID in the fantasy-league system
 
