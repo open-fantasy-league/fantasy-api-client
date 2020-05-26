@@ -1,5 +1,13 @@
 # fantasy-api-client
 
+Using backend notes:
+Often need to provide own UUID unique ID's for entities, rather than server auto-generating these for you.
+Havent written client-side update funcs yet (they're actually not needed much in fantasy, 
+unless you fuck things up lol)
+Havent written server-side "get" funcs, can just subcribe to all comps/leagues/etc and it'll return you
+a full list of entities in db.
+Havent written server-side remove funcs yet, just dont fuckup lol.
+
 TODO:
 - first get discord api keys/testing servers.
 - tidy up clients (dataclasses might be better than named-tuples[type-safety, default-values, can use docstrings to document fields better])

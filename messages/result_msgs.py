@@ -1,12 +1,10 @@
 import uuid
-from collections import namedtuple
 from dataclasses import dataclass, field
+from typing import List, Tuple, Optional
 
 # https://realpython.com/python-data-classes/
 
 # Subscriptions
-from datetime import datetime
-from typing import List, Tuple, Optional
 
 
 @dataclass

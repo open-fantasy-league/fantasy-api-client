@@ -1,11 +1,41 @@
 from collections import namedtuple
-# https://realpython.com/python-data-classes/
+import uuid
+from dataclasses import dataclass, field
+from typing import Optional, List, Tuple
+
 
 # Subscriptions
-SubLeague = namedtuple('SubLeaderboard', 'all, sub_league_ids, unsub_league_ids')
-SubLeaderboard = namedtuple('SubLeaderboard', 'all, sub_leaderboard_ids, unsub_leaderboard_ids')
 
 
-# Insert/Updates
-Leaderboard = namedtuple('Leaderboard', 'leaderboard_id, league_id, name, meta, timespan')
-Stat = namedtuple('Stat', 'leaderboard_id, player_id, timestamp, points, meta')
+@dataclass
+class SubLeague:
+    all: bool
+    sub_league_ids: Optional[List[uuid]] = None
+    unsub_league_ids: Optional[List[uuid]] = None
+
+
+@dataclass
+class SubLeaderboard:
+    all: bool
+    sub_leaderboard_ids: Optional[List[uuid]] = None
+    unsub_leaderboard_ids: Optional[List[uuid]] = None
+
+
+@dataclass
+class Leaderboard:
+    leaderboard_id: uuid
+    league_id: uuid
+    name: str
+    timespan: Tuple[str, str]
+    meta: dict = field(default_factory=dict)
+
+
+@dataclass
+class Stat:
+    leaderboard_id: uuid
+    player_id: uuid
+    name: str
+    timestamp: str
+    points: float
+    meta: dict = field(default_factory=dict)
+    league_id: Optional[uuid] = None
