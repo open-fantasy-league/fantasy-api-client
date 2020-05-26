@@ -7,6 +7,10 @@ unless you fuck things up lol)
 Havent written server-side "get" funcs, can just subcribe to all comps/leagues/etc and it'll return you
 a full list of entities in db.
 Havent written server-side remove funcs yet, just dont fuckup lol.
+The dataclasses have some optional fields which seem weird to be optional,
+this is because when you insert/send them, you have to specify that field, 
+but when you get a published message about that entity, the field is missing
+(Usually because it's an ID, where that ID has already been specified higher up the chain)
 
 TODO:
 - first get discord api keys/testing servers.

@@ -27,20 +27,6 @@ class SubDraft:
 # Insert/Updates
 
 @dataclass
-class League:
-    league_id: uuid
-    name: str
-    competition_id: uuid
-    team_size: int
-    squad_size: int
-    max_squad_players_same_team: int
-    max_squad_players_same_position: int
-    max_team_players_same_team: int
-    max_team_players_same_position: int
-    meta: dict = field(default_factory=dict)
-
-
-@dataclass
 class Period:
     period_id: uuid
     name: str
@@ -66,17 +52,34 @@ class StatMultiplier:
 
 
 @dataclass
-class ExternalUser:
+class FantasyTeam:
+    fantasy_team_id: uuid
     external_user_id: uuid
+    league_id: uuid
     name: str
     meta: dict = field(default_factory=dict)
 
 
 @dataclass
-class FantasyTeam:
-    fantasy_team_id: uuid
-    external_user_id: uuid
+class League:
     league_id: uuid
+    name: str
+    competition_id: uuid
+    team_size: int
+    squad_size: int
+    max_squad_players_same_team: int
+    max_squad_players_same_position: int
+    max_team_players_same_team: int
+    max_team_players_same_position: int
+    meta: dict = field(default_factory=dict)
+    periods: Optional[List[Period]] = None
+    stat_multipliers: Optional[List[StatMultiplier]] = None
+    fantasy_teams: Optional[List[FantasyTeam]] = None
+
+
+@dataclass
+class ExternalUser:
+    external_user_id: uuid
     name: str
     meta: dict = field(default_factory=dict)
 
@@ -88,21 +91,22 @@ class DraftQueue:
 
 
 @dataclass
-class DraftChoice:
-    draft_choice_id: uuid
-    timespan: Tuple[str, str]
-
-
-@dataclass
 class Pick:
     """
     A pick in the squad for timespan T. May or may not be in the team, needs an ActivePick entry to be in team.
     """
     pick_id: uuid
-    fantasy_team_id: uuid
-    draft_choice_id: uuid
     player_id: uuid
     timespan: Tuple[str, str]
+    fantasy_team_id: Optional[uuid] = None
+    draft_choice_id: Optional[uuid] = None
+
+
+@dataclass
+class DraftChoice:
+    draft_choice_id: uuid
+    timespan: Tuple[str, str]
+    pick: Optional[Pick] = None
 
 
 @dataclass
@@ -117,40 +121,25 @@ class ActivePick:
 
 #######################
 
-# Received
+# Received only
 ########################
 
-# ExternalUser is received as well as sent
-"""
-#[derive(Deserialize, Serialize, Debug)]
-pub struct ApiLeague {
-    pub league_id: Uuid,
-    pub name: String,
-    pub team_size: i32,
-    pub squad_size: i32,
-    pub competition_id: Uuid,
-    pub meta: serde_json::Value,
-    pub max_squad_players_same_team: i32,
-    pub max_squad_players_same_position: i32,
-    pub max_team_players_same_team: i32,
-    pub max_team_players_same_position: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub periods: Option<Vec<Period>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stat_multipliers: Option<Vec<StatMultiplier>>,
-    pub fantasy_teams: Option<Vec<FantasyTeam>>,
-}
+
+@dataclass
+class TeamDraft:
+    team_draft_id: uuid
+    fantasy_team_id: uuid
+    name: str
+    external_user_id: uuid
+    meta: dict = field(default_factory=dict)
+    draft_choices: Optional[List[DraftChoice]] = None
+    active_picks: Optional[List[Pick]] = None
 
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct ApiDraft {
-    pub league_id: Uuid,
-    pub draft_id: Uuid,
-    pub period_id: Uuid,
-    pub meta: serde_json::Value,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub team_drafts: Option<Vec<ApiTeamDraft>>,
-}
-
-
-"""
+@dataclass
+class Draft:
+    league_id: uuid
+    draft_id: uuid
+    period_id: uuid
+    meta: dict = field(default_factory=dict)
+    team_drafts: Optional[List[TeamDraft]] = None
