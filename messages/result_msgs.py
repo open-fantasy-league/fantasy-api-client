@@ -9,11 +9,17 @@ from typing import List, Tuple, Optional
 
 @dataclass
 class SubTeam:
+    """
+    Subs to receive Team messages
+    """
     toggle: bool
 
 
 @dataclass
 class SubCompetition:
+    """
+    Subs to receive Competition messages
+    """
     all: bool
     # Because cant have mutable [] as default
     sub_competition_ids: Optional[List[uuid]] = None
@@ -107,14 +113,17 @@ class TeamName:
 
 
 @dataclass
+class TeamPlayer:
+    team_id: uuid
+    timespan: Tuple[str, str]
+    # player-id present when inserting
+    player_id: Optional[uuid] = None
+    # player presenting in published messages
+    player: Optional[Player] = None
+
+@dataclass
 class Team:
     team_id: uuid
     meta: dict = field(default_factory=dict)
     names: Optional[List[TeamName]] = None
-
-
-@dataclass
-class TeamPlayer:
-    team_id: uuid
-    player_id: uuid
-    timespan: Tuple[str, str]
+    players: Optional[List[TeamPlayer]] = None

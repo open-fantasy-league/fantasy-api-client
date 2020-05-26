@@ -7,11 +7,17 @@ from typing import List, Tuple, Optional
 
 @dataclass
 class SubUser:
+    """
+    Subs to receive ExternalUser messages when they update
+    """
     toggle: bool
 
 
 @dataclass
 class SubLeague:
+    """
+    Subs to receive League messages when they update
+    """
     all: bool
     sub_league_ids: Optional[List[uuid]] = None
     unsub_league_ids: Optional[List[uuid]] = None
@@ -19,6 +25,9 @@ class SubLeague:
 
 @dataclass
 class SubDraft:
+    """
+    Subs to receive Draft messages when they update
+    """
     all: bool
     sub_draft_ids: Optional[List[uuid]] = None
     unsub_draft_ids: Optional[List[uuid]] = None

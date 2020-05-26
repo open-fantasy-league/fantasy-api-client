@@ -9,6 +9,9 @@ from typing import Optional, List, Tuple
 
 @dataclass
 class SubLeague:
+    """
+    Subs to receive Leaderboard messages
+    """
     all: bool
     sub_league_ids: Optional[List[uuid]] = None
     unsub_league_ids: Optional[List[uuid]] = None
@@ -16,18 +19,12 @@ class SubLeague:
 
 @dataclass
 class SubLeaderboard:
+    """
+    Subs to receive Leaderboard messages
+    """
     all: bool
     sub_leaderboard_ids: Optional[List[uuid]] = None
     unsub_leaderboard_ids: Optional[List[uuid]] = None
-
-
-@dataclass
-class Leaderboard:
-    leaderboard_id: uuid
-    league_id: uuid
-    name: str
-    timespan: Tuple[str, str]
-    meta: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -39,3 +36,14 @@ class Stat:
     points: float
     meta: dict = field(default_factory=dict)
     league_id: Optional[uuid] = None
+
+
+@dataclass
+class Leaderboard:
+    leaderboard_id: uuid
+    league_id: uuid
+    name: str
+    timespan: Tuple[str, str]
+    meta: dict = field(default_factory=dict)
+    stats: Optional[List[Stat]] = None
+
