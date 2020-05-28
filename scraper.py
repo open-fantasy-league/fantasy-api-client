@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import os
@@ -14,6 +15,7 @@ from messages.fantasy_msgs import SubLeague
 from messages.leaderboard_msgs import SubLeaderboard, Stat
 from messages.result_msgs import SubCompetition, TeamMatchResult, PlayerResult
 from utils.constants import DATE_FMT
+from data.dota_ids import FANTASY_COMPETITION_ID
 
 APIKEY = os.environ.get("APIKEY")
 if not APIKEY:
@@ -34,7 +36,7 @@ fantasy_client_fut = result_client.run()
 leaderboard_client = LeaderboardWebsocketClient('0.0.0.0', 3002)
 leaderboard_client_fut = result_client.run()
 
-DOTA_TO_FANTASY_LEAGUE_IDS = {24: 'weird uuid'}
+DOTA_TO_FANTASY_LEAGUE_IDS = {12027: FANTASY_COMPETITION_ID}
 DOTA_TO_FANTASY_MATCH_IDS = {24: 'weird uuid'}
 FANTASY_TO_DOTA_MATCH_IDS = {'weird uuid': 24}
 DOTA_TO_FANTASY_PLAYER_IDS = {24: 'weird uuid'}
@@ -147,20 +149,6 @@ async def get_league_results(league_id, tstamp_from=0):
         # use fantasy server to find how many points for each user
         # upsert leaderboard
         #
-            # 'stats': [
-            #         {'field': 'kills', 'value': player["kills"]},
-            #         {'field': 'assists', 'value': player["assists"]},
-            #         {'field': 'deaths', 'value': player["deaths"]},
-            #         {'field': 'last hits', 'value': player["last_hits"]},
-            #         {'field': 'denies', 'value': player["denies"]},
-            #         {'field': 'first blood', 'value': player["firstblood_claimed"]},
-            #         # {'field': 'stun', 'value': player["stuns"]},
-            #         {'field': 'teamfight participation', 'value': player["teamfight_participation"]},
-            #         {'field': 'GPM', 'value': player["gold_per_min"]},
-            #         {'field': 'towers', 'value': player["towers_killed"]},
-            #         {'field': 'observer wards', 'value': player["obs_placed"]},
-            #         {'field': 'dewards', 'value': player["observer_kills"]},
-            #         {'field': 'camps stacked', 'value': player["camps_stacked"]},
-            #         {'field': 'runes', 'value': player["rune_pickups"]},
-            #         {'field': 'roshans', 'value': player["roshan_kills"]},
-            #     ]
+
+if __name__ == "__main__":
+    asyncio.run(get_league_results(12027))
