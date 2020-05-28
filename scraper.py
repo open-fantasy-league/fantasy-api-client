@@ -1,12 +1,19 @@
+import datetime
 import json
 import os
 import time
 import traceback
+from collections import defaultdict
 
 import requests
 
+from clients.fantasy_websocket_client import FantasyWebsocketClient
+from clients.leaderboard_websocket_client import LeaderboardWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
-from messages.result_msgs import SubCompetition
+from messages.fantasy_msgs import SubLeague
+from messages.leaderboard_msgs import SubLeaderboard, Stat
+from messages.result_msgs import SubCompetition, TeamMatchResult, PlayerResult
+from utils.constants import DATE_FMT
 
 APIKEY = os.environ.get("APIKEY")
 if not APIKEY:
@@ -22,10 +29,16 @@ FANTASY_RESULT_PORT = 3001
 
 result_client = ResultWebsocketClient('0.0.0.0', 3001)
 result_client_fut = result_client.run()
+fantasy_client = FantasyWebsocketClient('0.0.0.0', 3003)
+fantasy_client_fut = result_client.run()
+leaderboard_client = LeaderboardWebsocketClient('0.0.0.0', 3002)
+leaderboard_client_fut = result_client.run()
 
 DOTA_TO_FANTASY_LEAGUE_IDS = {24: 'weird uuid'}
 DOTA_TO_FANTASY_MATCH_IDS = {24: 'weird uuid'}
 FANTASY_TO_DOTA_MATCH_IDS = {'weird uuid': 24}
+DOTA_TO_FANTASY_PLAYER_IDS = {24: 'weird uuid'}
+DOTA_TO_FANTASY_TEAM_IDS = {24: 'weird uuid'}
 
 
 def rate_limited_retrying_request(url, sleep=1, max_tries=4):
@@ -46,38 +59,108 @@ def rate_limited_retrying_request(url, sleep=1, max_tries=4):
 
 
 async def get_league_results(league_id, tstamp_from=0):
+    fantasy_competitition_id = DOTA_TO_FANTASY_LEAGUE_IDS[league_id]
     match_list = rate_limited_retrying_request(MATCH_LISTING_URL.format(key=APIKEY, league_id=league_id))
     fantasy_competition_hierarchy = await result_client.send_sub_competitions(
-        SubCompetition(all=False, sub_competition_ids=[DOTA_TO_FANTASY_LEAGUE_IDS[league_id]])
+        SubCompetition(all=False, sub_competition_ids=[fantasy_competitition_id])
     )
     fantasy_matches = (s["matches"] for s in fantasy_competition_hierarchy["data"][0]["series"])
+    fantasy_leagues = await fantasy_client.send_sub_leagues(
+        SubLeague(all=True)
+    )
+    fantasy_league = next(f for f in fantasy_leagues["data"] if f["competition_id"] == fantasy_competitition_id)
     # Filter out matches that already have their results set
     match_ids = (FANTASY_TO_DOTA_MATCH_IDS[m["match_id"]] for m in fantasy_matches if len(m["team_match_results"]) == 0)
     matches_to_scrape = [m['match_id'] for m in match_list if m['match_id'] in match_ids and m['start_time'] >= tstamp_from]
     # TODO handle the dodgy api matches/remakes
     for match_id in matches_to_scrape:
+        leaderboards = await leaderboard_client.send_sub_leaderboards(
+            SubLeaderboard(all=True)
+        )
+
+        # TODO make sure server is ordering these
+        user_points = next(l for l in leaderboards["data"] if l["name"] == "User Points")["stats"][-1]
+        user_points_dict = {p["player_id"]: p for p in user_points}
+        player_points = next(l for l in leaderboards["data"] if l["name"] == "Player Points")["stats"][-1]
+        player_points_dict = {p["player_id"]: p for p in player_points}
+        # TODO search for match with correct teams.
+        # throw the team names in meta?
+        fantasy_match_id = "uuid"
         match_resp = rate_limited_retrying_request(MATCH_DETAILS_URL.format(key=APIKEY, match_id=match_id))
         odota_match_resp = rate_limited_retrying_request(MATCH_DETAILS_OPEN_DOTA_URL.format(match_id=match_id))
-        players = []
+        player_results = []
+
+        #
+
+        # TODO use match start to find period and thus find period-multiplier
+        team_match_results = []
+        radiant_fantasy_id = DOTA_TO_FANTASY_TEAM_IDS[odota_match_resp["radiant_team_id"]]
+        dire_fantasy_id = DOTA_TO_FANTASY_TEAM_IDS[odota_match_resp["dire_team_id"]]
+        radiant_meta = {"kills": odota_match_resp["radiant_score"]}
+        dire_meta = {"kills": odota_match_resp["dire_score"]}
+
+        team_match_results.append(TeamMatchResult(
+            match_id, radiant_fantasy_id, "1" if odota_match_resp["radiant_win"] else "0", radiant_meta
+        ))
+        team_match_results.append(TeamMatchResult(
+            match_id, dire_fantasy_id, "0" if odota_match_resp["radiant_win"] else "1", dire_meta
+        ))
+        user_points = defaultdict(float)
+        user_teams = {'': []}
+        period_multiplier = 1.0
+        now = datetime.datetime.now(datetime.timezone.utc).strftime(DATE_FMT)
         for player in odota_match_resp['players']:
-            pickee = {"id": player["account_id"], "isTeamOne": player["isRadiant"],
-                      'stats': [
-                              {'field': 'kills', 'value': player["kills"]},
-                              {'field': 'assists', 'value': player["assists"]},
-                              {'field': 'deaths', 'value': player["deaths"]},
-                              {'field': 'last hits', 'value': player["last_hits"]},
-                              {'field': 'denies', 'value': player["denies"]},
-                              {'field': 'first blood', 'value': player["firstblood_claimed"]},
-                              # {'field': 'stun', 'value': player["stuns"]},
-                              {'field': 'teamfight participation', 'value': player["teamfight_participation"]},
-                              {'field': 'GPM', 'value': player["gold_per_min"]},
-                              {'field': 'towers', 'value': player["towers_killed"]},
-                              {'field': 'observer wards', 'value': player["obs_placed"]},
-                              {'field': 'dewards', 'value': player["observer_kills"]},
-                              {'field': 'camps stacked', 'value': player["camps_stacked"]},
-                              {'field': 'runes', 'value': player["rune_pickups"]},
-                              {'field': 'roshans', 'value': player["roshan_kills"]},
-                          ]
-                      }
-            if player["account_id"] in valid_pickee_ids:
-                players.append(pickee)
+            fantasy_player_id = DOTA_TO_FANTASY_PLAYER_IDS[player["account_id"]]
+            player_result = {"points": 0.0}
+            for stat in fantasy_league["stat_multipliers"]:
+                player_result[stat["name"]] = player[stat["name"]]
+                player_result["points"] += (
+                        stat["multiplier"] * player[stat["name"]] + period_multiplier
+                )
+            player_results.append(PlayerResult(
+                fantasy_match_id, fantasy_player_id, player_result
+            ))
+            for user, team in user_teams.items():
+                if fantasy_player_id in team:
+                    user_points[user] += player_result["points"]
+                    user_points_dict[user]["points"] += player_result["points"]
+            player_points_dict[fantasy_player_id]["points"] += player_result["points"]
+
+        for val in user_points_dict.values():
+            val["timestamp"] = now
+
+        for val in player_points_dict.values():
+            val["timestamp"] = now
+
+        # TODO can do at same time. not sequentially.
+        await result_client.send_insert_team_match_results(team_match_results)
+        await result_client.send_insert_player_results(player_results)
+        await leaderboard_client.send_insert_stat(
+            [Stat(user["leaderboard_id"], user["player_id"], user["name"], now, user["points"]) for user in user_points_dict.values()]
+        )
+        await leaderboard_client.send_insert_stat(
+            [Stat(x["leaderboard_id"], x["player_id"], x["name"], now, x["points"]) for x in
+             player_points_dict.values()]
+        )
+
+        # upsert match stuff to result server
+        # use fantasy server to find how many points for each user
+        # upsert leaderboard
+        #
+            # 'stats': [
+            #         {'field': 'kills', 'value': player["kills"]},
+            #         {'field': 'assists', 'value': player["assists"]},
+            #         {'field': 'deaths', 'value': player["deaths"]},
+            #         {'field': 'last hits', 'value': player["last_hits"]},
+            #         {'field': 'denies', 'value': player["denies"]},
+            #         {'field': 'first blood', 'value': player["firstblood_claimed"]},
+            #         # {'field': 'stun', 'value': player["stuns"]},
+            #         {'field': 'teamfight participation', 'value': player["teamfight_participation"]},
+            #         {'field': 'GPM', 'value': player["gold_per_min"]},
+            #         {'field': 'towers', 'value': player["towers_killed"]},
+            #         {'field': 'observer wards', 'value': player["obs_placed"]},
+            #         {'field': 'dewards', 'value': player["observer_kills"]},
+            #         {'field': 'camps stacked', 'value': player["camps_stacked"]},
+            #         {'field': 'runes', 'value': player["rune_pickups"]},
+            #         {'field': 'roshans', 'value': player["roshan_kills"]},
+            #     ]

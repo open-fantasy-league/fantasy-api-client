@@ -3,10 +3,6 @@ import asyncio
 from fake_data import *
 from clients.result_websocket_client import ResultWebsocketClient
 
-# Necessary to strf datetimes into this format before sending to api
-# TODO write a custom json serializer to use in websocket_client.py to serialize date-times on entry/exit
-DATE_FMT = "%Y-%m-%dT%H:%M:%S%z"
-
 
 async def setup_competitions():
     await result_client.send_insert_competitions(EXAMPLE_COMPS)
