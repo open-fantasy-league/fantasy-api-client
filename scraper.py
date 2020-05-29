@@ -1,12 +1,9 @@
 import asyncio
 import datetime
-import json
 import os
-import time
-import traceback
+from utils.utils import rate_limited_retrying_request
 from collections import defaultdict
 
-import requests
 
 from clients.fantasy_websocket_client import FantasyWebsocketClient
 from clients.leaderboard_websocket_client import LeaderboardWebsocketClient
@@ -17,9 +14,9 @@ from messages.result_msgs import SubCompetition, TeamMatchResult, PlayerResult
 from utils.constants import DATE_FMT
 from data.dota_ids import FANTASY_COMPETITION_ID
 
-APIKEY = os.environ.get("APIKEY")
+APIKEY = os.environ.get("STEAMAPIKEY")
 if not APIKEY:
-    raise Exception("Must set APIKEY env var")
+    raise Exception("Must set STEAMAPIKEY env var")
 
 LEAGUE_LISTING_URL = "http://api.steampowered.com/IDOTA2Match_570/GetLeagueListing/v0001?key={key}"
 MATCH_LISTING_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v0001?key={key}&league_id={league_id}"
@@ -41,23 +38,6 @@ DOTA_TO_FANTASY_MATCH_IDS = {24: 'weird uuid'}
 FANTASY_TO_DOTA_MATCH_IDS = {'weird uuid': 24}
 DOTA_TO_FANTASY_PLAYER_IDS = {24: 'weird uuid'}
 DOTA_TO_FANTASY_TEAM_IDS = {24: 'weird uuid'}
-
-
-def rate_limited_retrying_request(url, sleep=1, max_tries=4):
-    tries = 0
-    resp = None
-    while resp is None:
-        try:
-            tries += 1
-            resp = requests.get(url)
-        except Exception:
-            traceback.print_exc()
-            sleep *= 4
-            if tries > max_tries:
-                raise Exception("Failed getting url {} after max tries {}".format(url, max_tries))
-        finally:
-            time.sleep(sleep)
-    return json.loads(resp)
 
 
 async def get_league_results(league_id, tstamp_from=0):

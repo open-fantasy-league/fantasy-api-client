@@ -13,8 +13,8 @@ class SubLeague:
     Subs to receive Leaderboard messages
     """
     all: bool
-    sub_league_ids: Optional[List[uuid]] = None
-    unsub_league_ids: Optional[List[uuid]] = None
+    sub_league_ids: Optional[List[uuid.UUID]] = None
+    unsub_league_ids: Optional[List[uuid.UUID]] = None
 
 
 @dataclass
@@ -23,8 +23,8 @@ class SubLeaderboard:
     Subs to receive Leaderboard messages
     """
     all: bool
-    sub_leaderboard_ids: Optional[List[uuid]] = None
-    unsub_leaderboard_ids: Optional[List[uuid]] = None
+    sub_leaderboard_ids: Optional[List[uuid.UUID]] = None
+    unsub_leaderboard_ids: Optional[List[uuid.UUID]] = None
 
 
 @dataclass
@@ -35,7 +35,7 @@ class Stat:
     timestamp: str
     points: float
     meta: dict = field(default_factory=dict)
-    league_id: Optional[uuid] = None
+    league_id: Optional[uuid.UUID] = None
 
 
 @dataclass

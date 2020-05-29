@@ -19,8 +19,8 @@ class SubLeague:
     Subs to receive League messages when they update
     """
     all: bool
-    sub_league_ids: Optional[List[uuid]] = None
-    unsub_league_ids: Optional[List[uuid]] = None
+    sub_league_ids: Optional[List[uuid.UUID]] = None
+    unsub_league_ids: Optional[List[uuid.UUID]] = None
 
 
 @dataclass
@@ -29,8 +29,8 @@ class SubDraft:
     Subs to receive Draft messages when they update
     """
     all: bool
-    sub_draft_ids: Optional[List[uuid]] = None
-    unsub_draft_ids: Optional[List[uuid]] = None
+    sub_draft_ids: Optional[List[uuid.UUID]] = None
+    unsub_draft_ids: Optional[List[uuid.UUID]] = None
 
 
 # Insert/Updates
@@ -49,7 +49,7 @@ class Period:
     # (i.e. anybody who joins league after draft lockdown, doesnt get a draft for that period. they sit out)
     draft_lockdown: str
     meta: dict = field(default_factory=dict)
-    league_id: Optional[uuid] = None
+    league_id: Optional[uuid.UUID] = None
 
 
 @dataclass
@@ -57,7 +57,7 @@ class StatMultiplier:
     name: str
     multiplier: float
     meta: dict = field(default_factory=dict)
-    league_id: Optional[uuid] = None
+    league_id: Optional[uuid.UUID] = None
 
 
 @dataclass
@@ -96,7 +96,7 @@ class ExternalUser:
 @dataclass
 class DraftQueue:
     fantasy_team_id: uuid
-    player_ids: List[uuid]
+    player_ids: List[uuid.UUID]
 
 
 @dataclass
@@ -107,8 +107,8 @@ class Pick:
     pick_id: uuid
     player_id: uuid
     timespan: Tuple[str, str]
-    fantasy_team_id: Optional[uuid] = None
-    draft_choice_id: Optional[uuid] = None
+    fantasy_team_id: Optional[uuid.UUID] = None
+    draft_choice_id: Optional[uuid.UUID] = None
 
 
 @dataclass
