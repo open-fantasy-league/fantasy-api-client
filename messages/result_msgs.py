@@ -29,31 +29,31 @@ class SubCompetition:
 # Insert/Updates
 @dataclass
 class TeamSeriesResult:
-    series_id: uuid
-    team_id: uuid
+    series_id: uuid.UUID
+    team_id: uuid.UUID
     result: str
     meta: dict = field(default_factory=dict)
 
 
 @dataclass
 class TeamMatchResult:
-    match_id: uuid
-    team_id: uuid
+    match_id: uuid.UUID
+    team_id: uuid.UUID
     result: str
     meta: dict = field(default_factory=dict)
 
 
 @dataclass
 class PlayerResult:
-    match_id: uuid
-    player_id: uuid
+    match_id: uuid.UUID
+    player_id: uuid.UUID
     result: dict
     meta: dict = field(default_factory=dict)
 
 
 @dataclass
 class Match:
-    match_id: uuid
+    match_id: uuid.UUID
     name: str
     # Timespans are str's as can't implicitly json convert datetimes (could make a custom serializer though)
     timespan: Tuple[str, str]
@@ -65,7 +65,7 @@ class Match:
 
 @dataclass
 class Series:
-    series_id: uuid
+    series_id: uuid.UUID
     name: str
     timespan: Tuple[str, str]
     competition_id: Optional[uuid.UUID] = None
@@ -76,7 +76,7 @@ class Series:
 
 @dataclass
 class Competition:
-    competition_id: uuid
+    competition_id: uuid.UUID
     name: str
     timespan: Tuple[str, str]
     meta: dict = field(default_factory=dict)
@@ -99,7 +99,7 @@ class PlayerName:
 
 @dataclass
 class Player:
-    player_id: uuid
+    player_id: uuid.UUID
     meta: dict = field(default_factory=dict)
     names: Optional[List[PlayerName]] = None
     positions: Optional[List[PlayerPosition]] = None
@@ -114,7 +114,7 @@ class TeamName:
 
 @dataclass
 class TeamPlayer:
-    team_id: uuid
+    team_id: uuid.UUID
     timespan: Tuple[str, str]
     # player-id present when inserting
     player_id: Optional[uuid.UUID] = None
@@ -123,7 +123,7 @@ class TeamPlayer:
 
 @dataclass
 class Team:
-    team_id: uuid
+    team_id: uuid.UUID
     meta: dict = field(default_factory=dict)
     names: Optional[List[TeamName]] = None
     players: Optional[List[TeamPlayer]] = None

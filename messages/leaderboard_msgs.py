@@ -29,8 +29,8 @@ class SubLeaderboard:
 
 @dataclass
 class Stat:
-    leaderboard_id: uuid
-    player_id: uuid
+    leaderboard_id: uuid.UUID
+    player_id: uuid.UUID
     name: str
     timestamp: str
     points: float
@@ -40,10 +40,18 @@ class Stat:
 
 @dataclass
 class Leaderboard:
-    leaderboard_id: uuid
-    league_id: uuid
+    leaderboard_id: uuid.UUID
+    league_id: uuid.UUID
     name: str
     timespan: Tuple[str, str]
     meta: dict = field(default_factory=dict)
     stats: Optional[List[Stat]] = None
+
+@dataclass
+class Leaderboard2:
+    leaderboard_id: str
+    league_id: str
+    name: str
+    timespan: Tuple[str, str]
+    meta: dict = field(default_factory=dict)
 

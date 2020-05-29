@@ -1,3 +1,6 @@
+import dataclasses
+from uuid import UUID
+
 import requests
 import json
 import time
@@ -20,3 +23,23 @@ def rate_limited_retrying_request(url, sleep=1, max_tries=4):
         finally:
             time.sleep(sleep)
     return resp.json()
+
+
+class UUIDEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, UUID):
+            # if the obj is uuid, we simply return the value of uuid
+            return obj.hex
+        return json.JSONEncoder.default(self, obj)
+
+
+class Encoder(json.JSONEncoder):
+    def default(self, obj):
+        if dataclasses.is_dataclass(obj):
+            return obj.__dict__
+        elif isinstance(obj, UUID):
+            # if the obj is uuid, we simply return the value of uuid
+            return obj.hex
+        # TODO datetime ser
+        # Base class default() raises TypeError:
+        return json.JSONEncoder.default(self, obj)

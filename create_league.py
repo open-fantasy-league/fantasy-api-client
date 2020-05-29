@@ -7,7 +7,7 @@ from clients.fantasy_websocket_client import FantasyWebsocketClient
 from clients.leaderboard_websocket_client import LeaderboardWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
 from messages.fantasy_msgs import League, StatMultiplier, Period
-from messages.leaderboard_msgs import Leaderboard
+from messages.leaderboard_msgs import Leaderboard, Leaderboard2
 from messages.result_msgs import Competition, Team, TeamName, Player, PlayerName, PlayerPosition, TeamPlayer
 from utils.constants import DATE_FMT
 from data.dota_ids import FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, FANTASY_USER_LEADERBOARD_ID, \
@@ -16,14 +16,14 @@ from data.dota_ids import FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, FANT
 
 async def create_league(league_id, name):
     result_client = ResultWebsocketClient('0.0.0.0', 3001)
-    result_client_fut = result_client.run()
+    asyncio.create_task(result_client.run())
     fantasy_client = FantasyWebsocketClient('0.0.0.0', 3003)
-    fantasy_client_fut = result_client.run()
+    asyncio.create_task(fantasy_client.run())
     leaderboard_client = LeaderboardWebsocketClient('0.0.0.0', 3002)
-    leaderboard_client_fut = result_client.run()
+    asyncio.create_task(leaderboard_client.run())
 
-    start_time = datetime.datetime(2020, 5, 10)
-    end_time = datetime.datetime(2020, 6, 10)
+    start_time = datetime.datetime(2020, 5, 10, tzinfo=datetime.timezone.utc)
+    end_time = datetime.datetime(2020, 6, 10, tzinfo=datetime.timezone.utc)
     await leaderboard_client.send_insert_leaderboard([
         Leaderboard(
             FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, "ESL Birmingham Player Points",
@@ -39,7 +39,7 @@ async def create_league(league_id, name):
                     meta={"valve_id": league_id})
     ])
     await fantasy_client.send_insert_leagues([
-        League(FANTASY_LEAGUE_ID, "ESL Birmingham", FANTASY_COMPETITION_ID, 5, 5, 2, 3)
+        League(FANTASY_LEAGUE_ID, "ESL Birmingham", FANTASY_COMPETITION_ID, 5, 5, 2, 3, 2, 3)
     ])
 
     await fantasy_client.send_insert_stat_multipliers([
@@ -110,7 +110,7 @@ async def create_league(league_id, name):
         p["fantasy_id"],
     ) for t in teams for p in t["players"]])
 
-    await fantasy_client.send_insert_valid_players([p["fantasy_id"] for t in teams for p in t["players"]])
+    #await fantasy_client.send_insert_valid_players([p["fantasy_id"] for t in teams for p in t["players"]])
 
 
 if __name__ == "__main__":

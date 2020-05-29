@@ -37,7 +37,7 @@ class SubDraft:
 
 @dataclass
 class Period:
-    period_id: uuid
+    period_id: uuid.UUID
     name: str
     timespan: Tuple[str, str]
     points_multiplier: float
@@ -62,18 +62,18 @@ class StatMultiplier:
 
 @dataclass
 class FantasyTeam:
-    fantasy_team_id: uuid
-    external_user_id: uuid
-    league_id: uuid
+    fantasy_team_id: uuid.UUID
+    external_user_id: uuid.UUID
+    league_id: uuid.UUID
     name: str
     meta: dict = field(default_factory=dict)
 
 
 @dataclass
 class League:
-    league_id: uuid
+    league_id: uuid.UUID
     name: str
-    competition_id: uuid
+    competition_id: uuid.UUID
     team_size: int
     squad_size: int
     max_squad_players_same_team: int
@@ -88,14 +88,14 @@ class League:
 
 @dataclass
 class ExternalUser:
-    external_user_id: uuid
+    external_user_id: uuid.UUID
     name: str
     meta: dict = field(default_factory=dict)
 
 
 @dataclass
 class DraftQueue:
-    fantasy_team_id: uuid
+    fantasy_team_id: uuid.UUID
     player_ids: List[uuid.UUID]
 
 
@@ -104,8 +104,8 @@ class Pick:
     """
     A pick in the squad for timespan T. May or may not be in the team, needs an ActivePick entry to be in team.
     """
-    pick_id: uuid
-    player_id: uuid
+    pick_id: uuid.UUID
+    player_id: uuid.UUID
     timespan: Tuple[str, str]
     fantasy_team_id: Optional[uuid.UUID] = None
     draft_choice_id: Optional[uuid.UUID] = None
@@ -113,7 +113,7 @@ class Pick:
 
 @dataclass
 class DraftChoice:
-    draft_choice_id: uuid
+    draft_choice_id: uuid.UUID
     timespan: Tuple[str, str]
     pick: Optional[Pick] = None
 
@@ -123,8 +123,8 @@ class ActivePick:
     """
     THis is a pick that is actually in the team, and can score points earned for that player_id during this timespan
     """
-    active_pick_id: uuid
-    pick_id: uuid
+    active_pick_id: uuid.UUID
+    pick_id: uuid.UUID
     timespan: Tuple[str, str]
 
 
@@ -136,10 +136,10 @@ class ActivePick:
 
 @dataclass
 class TeamDraft:
-    team_draft_id: uuid
-    fantasy_team_id: uuid
+    team_draft_id: uuid.UUID
+    fantasy_team_id: uuid.UUID
     name: str
-    external_user_id: uuid
+    external_user_id: uuid.UUID
     meta: dict = field(default_factory=dict)
     draft_choices: Optional[List[DraftChoice]] = None
     active_picks: Optional[List[Pick]] = None
@@ -147,8 +147,8 @@ class TeamDraft:
 
 @dataclass
 class Draft:
-    league_id: uuid
-    draft_id: uuid
-    period_id: uuid
+    league_id: uuid.UUID
+    draft_id: uuid.UUID
+    period_id: uuid.UUID
     meta: dict = field(default_factory=dict)
     team_drafts: Optional[List[TeamDraft]] = None

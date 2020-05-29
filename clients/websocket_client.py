@@ -5,6 +5,8 @@ import websockets
 import json
 import uuid
 
+from utils.utils import UUIDEncoder, Encoder
+
 
 class WebsocketClient:
 
@@ -34,7 +36,10 @@ class WebsocketClient:
         }
         resp_event = asyncio.Event()
         self.resp_events[message_id] = resp_event
-        await self.websocket.send(json.dumps(msg))
+        print("\n\n")
+        print(json.dumps(msg, cls=Encoder))
+        print("\n\n")
+        await self.websocket.send(json.dumps(msg, cls=Encoder))
         await asyncio.sleep(0)
         return resp_event
 
@@ -50,6 +55,7 @@ class WebsocketClient:
             print("RESPONSE: {}\n".format(response))
             resp = json.loads(response)
             self.resps[resp['message_id']] = resp
+            print(self.resp_events)
             self.resp_events[resp['message_id']].set()
             await asyncio.sleep(0)
 
