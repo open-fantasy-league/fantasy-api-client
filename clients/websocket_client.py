@@ -17,6 +17,7 @@ class WebsocketClient:
         # TODO clear this out so doesnt infinitely grow in size
         self.resps = defaultdict(dict)
         self.resp_events = {}
+        self.sub_events = []
 
     async def send(self, method, data, message_id=None):
         # Could use an 'event' or something to handle this better
@@ -54,9 +55,12 @@ class WebsocketClient:
             response = await self.websocket.recv()
             print("RESPONSE: {}\n".format(response))
             resp = json.loads(response)
-            self.resps[resp['message_id']] = resp
-            print(self.resp_events)
-            self.resp_events[resp['message_id']].set()
+            if resp['mode'] in ('resp', 'error'):
+                self.resps[resp['message_id']] = resp
+                print(self.resp_events)
+                self.resp_events[resp['message_id']].set()
+            elif resp['mode'] == 'push':
+                self.sub_events.append(resp)
             await asyncio.sleep(0)
 
     async def run(self):

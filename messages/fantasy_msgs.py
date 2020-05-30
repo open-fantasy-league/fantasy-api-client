@@ -152,3 +152,9 @@ class Draft:
     period_id: uuid.UUID
     meta: dict = field(default_factory=dict)
     team_drafts: Optional[List[TeamDraft]] = None
+
+
+@dataclass
+class ValidPlayer:
+    player_id: uuid.UUID
+    period_id: uuid.UUID
