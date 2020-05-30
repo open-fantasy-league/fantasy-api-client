@@ -13,7 +13,7 @@ but when you get a published message about that entity, the field is missing
 (Usually because it's an ID, where that ID has already been specified higher up the chain)
 
 TODO:
-- first get discord api keys/testing servers.
+- ~~first get discord api keys/testing servers.~~
 - tidy up clients (dataclasses might be better than named-tuples[type-safety, default-values, can use docstrings to document fields better])
 - database
 Need a simple db schema to store discord users, and map them to a UUID in the fantasy-league system
@@ -47,3 +47,11 @@ Extras if have the time:
 !leaderboard-draft would show that leaderboard of 8 players
 
 For now will have team == squad, no "benched players", so simplifies things.
+
+## Discord bot
+
+- `cp default.env .env` and add bot token:
+  - got to discord apps [page](https://discord.com/developers/applications)]
+  - *bot name* > settings > bot > copy token
+- 
+- profit
