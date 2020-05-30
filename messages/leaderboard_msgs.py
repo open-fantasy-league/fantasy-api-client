@@ -47,11 +47,3 @@ class Leaderboard:
     meta: dict = field(default_factory=dict)
     stats: Optional[List[Stat]] = None
 
-@dataclass
-class Leaderboard2:
-    leaderboard_id: str
-    league_id: str
-    name: str
-    timespan: Tuple[str, str]
-    meta: dict = field(default_factory=dict)
-
