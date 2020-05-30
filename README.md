@@ -51,7 +51,7 @@ For now will have team == squad, no "benched players", so simplifies things.
 ## Discord bot
 
 - `cp default.env .env` and add bot token:
-  - got to discord apps [page](https://discord.com/developers/applications)]
+  - got to discord apps [page](https://discord.com/developers/applications)
   - *bot name* > settings > bot > copy token
 - 
 - profit
