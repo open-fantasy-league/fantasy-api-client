@@ -1,6 +1,10 @@
 import asyncio
 import datetime
 import os
+import uuid
+
+import dotenv
+
 from utils.utils import rate_limited_retrying_request
 from collections import defaultdict
 
@@ -10,34 +14,29 @@ from clients.leaderboard_websocket_client import LeaderboardWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
 from messages.fantasy_msgs import SubLeague
 from messages.leaderboard_msgs import SubLeaderboard, Stat
-from messages.result_msgs import SubCompetition, TeamMatchResult, PlayerResult
+from messages.result_msgs import SubCompetition, TeamMatchResult, PlayerResult, SubTeam
 from utils.constants import DATE_FMT
 from data.dota_ids import FANTASY_COMPETITION_ID
 
-APIKEY = os.environ.get("STEAMAPIKEY")
+dotenv.load_dotenv()
+APIKEY = os.getenv("STEAMAPIKEY")
 if not APIKEY:
-    raise Exception("Must set STEAMAPIKEY env var")
+    raise Exception("Must set STEAMAPIKEY .env var")
 
 LEAGUE_LISTING_URL = "http://api.steampowered.com/IDOTA2Match_570/GetLeagueListing/v0001?key={key}"
 MATCH_LISTING_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v0001?key={key}&league_id={league_id}"
 MATCH_DETAILS_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/v0001?key={key}&league_id={match_id}"
 MATCH_DETAILS_OPEN_DOTA_URL = "https://api.opendota.com/api/matches/{match_id}"
 
-FANTASY_RESULT_ADDR = '0.0.0.0'
-FANTASY_RESULT_PORT = 3001
 
-result_client = ResultWebsocketClient('0.0.0.0', 3001)
+result_client = ResultWebsocketClient()
 result_client_fut = result_client.run()
-fantasy_client = FantasyWebsocketClient('0.0.0.0', 3003)
+fantasy_client = FantasyWebsocketClient()
 fantasy_client_fut = result_client.run()
-leaderboard_client = LeaderboardWebsocketClient('0.0.0.0', 3002)
+leaderboard_client = LeaderboardWebsocketClient()
 leaderboard_client_fut = result_client.run()
 
 DOTA_TO_FANTASY_LEAGUE_IDS = {12027: FANTASY_COMPETITION_ID}
-DOTA_TO_FANTASY_MATCH_IDS = {24: 'weird uuid'}
-FANTASY_TO_DOTA_MATCH_IDS = {'weird uuid': 24}
-DOTA_TO_FANTASY_PLAYER_IDS = {24: 'weird uuid'}
-DOTA_TO_FANTASY_TEAM_IDS = {24: 'weird uuid'}
 
 
 async def get_league_results(league_id, tstamp_from=0):
@@ -46,28 +45,34 @@ async def get_league_results(league_id, tstamp_from=0):
     fantasy_competition_hierarchy = await result_client.send_sub_competitions(
         SubCompetition(all=False, sub_competition_ids=[fantasy_competitition_id])
     )
+    fantasy_teams_and_players = await result_client.send_sub_teams(
+        SubTeam(toggle=True)
+    )
+    DOTA_TO_FANTASY_TEAM_IDS = {t["meta"]["dota_id"]: t["team_id"] for t in fantasy_teams_and_players}
+    DOTA_TO_FANTASY_PLAYER_IDS = {p["meta"]["dota_id"]: p["team_id"] for t in fantasy_teams_and_players for p in t["players"]}
+
     fantasy_matches = (s["matches"] for s in fantasy_competition_hierarchy["data"][0]["series"])
     fantasy_leagues = await fantasy_client.send_sub_leagues(
         SubLeague(all=True)
     )
     fantasy_league = next(f for f in fantasy_leagues["data"] if f["competition_id"] == fantasy_competitition_id)
     # Filter out matches that already have their results set
-    match_ids = (FANTASY_TO_DOTA_MATCH_IDS[m["match_id"]] for m in fantasy_matches if len(m["team_match_results"]) == 0)
-    matches_to_scrape = [m['match_id'] for m in match_list if m['match_id'] in match_ids and m['start_time'] >= tstamp_from]
+    existing_match_ids = (m["meta"]["dota_id"] for m in fantasy_matches if len(m["team_match_results"]) != 0)
+    matches_to_scrape = [m['match_id'] for m in match_list if m['match_id'] not in existing_match_ids and m['start_time'] >= tstamp_from]
     # TODO handle the dodgy api matches/remakes
     for match_id in matches_to_scrape:
         leaderboards = await leaderboard_client.send_sub_leaderboards(
             SubLeaderboard(all=True)
         )
 
-        # TODO make sure server is ordering these
         user_points = next(l for l in leaderboards["data"] if l["name"] == "User Points")["stats"][-1]
         user_points_dict = {p["player_id"]: p for p in user_points}
         player_points = next(l for l in leaderboards["data"] if l["name"] == "Player Points")["stats"][-1]
         player_points_dict = {p["player_id"]: p for p in player_points}
         # TODO search for match with correct teams.
+        # For now dont put matches into db preemptively, just add when we get results.
         # throw the team names in meta?
-        fantasy_match_id = "uuid"
+        fantasy_match_id = uuid.uuid4()
         match_resp = rate_limited_retrying_request(MATCH_DETAILS_URL.format(key=APIKEY, match_id=match_id))
         odota_match_resp = rate_limited_retrying_request(MATCH_DETAILS_OPEN_DOTA_URL.format(match_id=match_id))
         player_results = []
@@ -117,6 +122,7 @@ async def get_league_results(league_id, tstamp_from=0):
         # TODO can do at same time. not sequentially.
         await result_client.send_insert_team_match_results(team_match_results)
         await result_client.send_insert_player_results(player_results)
+        # The way we update users/player points means this func shouldnt ever be run concurrently/parallelised across diff matches
         await leaderboard_client.send_insert_stat(
             [Stat(user["leaderboard_id"], user["player_id"], user["name"], now, user["points"]) for user in user_points_dict.values()]
         )
@@ -124,11 +130,6 @@ async def get_league_results(league_id, tstamp_from=0):
             [Stat(x["leaderboard_id"], x["player_id"], x["name"], now, x["points"]) for x in
              player_points_dict.values()]
         )
-
-        # upsert match stuff to result server
-        # use fantasy server to find how many points for each user
-        # upsert leaderboard
-        #
 
 if __name__ == "__main__":
     asyncio.run(get_league_results(12027))

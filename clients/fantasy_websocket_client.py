@@ -4,6 +4,9 @@ from messages.fantasy_msgs import *
 
 class FantasyWebsocketClient(WebsocketClient):
 
+    def __init__(self, addr='0.0.0.0', port=3003):
+        super().__init__(addr, port)
+
     async def send_sub_users(self, data: SubUser):
         return await self.send_and_get_resp("SubUser", data)
 

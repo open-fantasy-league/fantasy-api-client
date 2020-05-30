@@ -4,6 +4,9 @@ from messages.leaderboard_msgs import *
 
 class LeaderboardWebsocketClient(WebsocketClient):
 
+    def __init__(self, addr='0.0.0.0', port=3002):
+        super().__init__(addr, port)
+
     async def send_sub_leaderboards(self, data: SubLeaderboard):
         return await self.send_and_get_resp("SubLeaderboard", data)
 

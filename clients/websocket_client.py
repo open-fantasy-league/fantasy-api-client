@@ -5,7 +5,7 @@ import websockets
 import json
 import uuid
 
-from utils.utils import UUIDEncoder, Encoder
+from utils.utils import Encoder
 
 
 class WebsocketClient:
@@ -17,7 +17,7 @@ class WebsocketClient:
         # TODO clear this out so doesnt infinitely grow in size
         self.resps = defaultdict(dict)
         self.resp_events = {}
-        self.sub_events = []
+        self.sub_events = asyncio.Queue()
 
     async def send(self, method, data, message_id=None):
         # Could use an 'event' or something to handle this better
@@ -60,7 +60,7 @@ class WebsocketClient:
                 print(self.resp_events)
                 self.resp_events[resp['message_id']].set()
             elif resp['mode'] == 'push':
-                self.sub_events.append(resp)
+                await self.sub_events.put(resp)
             await asyncio.sleep(0)
 
     async def run(self):
