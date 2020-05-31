@@ -10,11 +10,11 @@ from clients.leaderboard_websocket_client import LeaderboardWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
 from fake_users import add_fake_users
 from messages.fantasy_msgs import League, StatMultiplier, Period, ValidPlayer
-from messages.leaderboard_msgs import Leaderboard, Leaderboard2
+from messages.leaderboard_msgs import Leaderboard
 from messages.result_msgs import Competition, Team, TeamName, Player, PlayerName, PlayerPosition, TeamPlayer
 from utils.constants import DATE_FMT
 from data.dota_ids import FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, FANTASY_USER_LEADERBOARD_ID, \
-    FANTASY_COMPETITION_ID, DOTA_TEAM_IDS_TO_FANTASY, TEAM_NAMES_TO_IDS
+    FANTASY_COMPETITION_ID, TEAM_NAMES_TO_IDS
 
 
 async def create_league(league_id, name, fake_users=False):
