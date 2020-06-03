@@ -55,3 +55,12 @@ For now will have team == squad, no "benched players", so simplifies things.
   - *bot name* > settings > bot > copy token
 - 
 - profit
+
+### TODO
+
+- discord api requirements
+  - create private channel
+    - ~~create role~~
+    - add role to users
+  - ~~destroy channel~~
+  - private message

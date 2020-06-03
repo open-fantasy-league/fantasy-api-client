@@ -32,17 +32,9 @@ class FantasyDota(commands.Cog):
         )
         await ctx.send(the_rules)
 
-    @commands.command()
-    async def clear(self, ctx):
-        """`Clear n` channel messages."""
-        channel = ctx.message.channel
-        await channel.purge()
-        await ctx.send("Finished cleaning. Bery nice.")
-
-
 
 def setup(bot):
     bot.add_cog(FantasyDota(bot))    
 
 def teardown(bot):
-    print('ext teardown')
+    print('fantasydota teardown')

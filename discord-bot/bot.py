@@ -20,6 +20,8 @@ bot = commands.Bot(command_prefix=COMMAND_PREFIX, case_insensitive=True,
 @bot.command()
 async def reload(ctx):
     bot.reload_extension('fantasydota')
+    bot.reload_extension('dev')
 
 bot.load_extension('fantasydota')
+bot.load_extension('dev')
 bot.run(BOT_TOKEN)
