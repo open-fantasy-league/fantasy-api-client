@@ -10,7 +10,7 @@ from clients.fantasy_websocket_client import FantasyWebsocketClient
 from clients.leaderboard_websocket_client import LeaderboardWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
 from fake_users import add_fake_users
-from messages.fantasy_msgs import League, StatMultiplier, Period, ValidPlayer
+from messages.fantasy_msgs import League, StatMultiplier, Period, ValidPlayer, MaxPlayersPerPosition
 from messages.leaderboard_msgs import Leaderboard
 from messages.result_msgs import Competition, Team, TeamName, Player, PlayerName, PlayerPosition, TeamPlayer
 from utils.constants import DATE_FMT
@@ -52,6 +52,9 @@ async def create_league(
         League(FANTASY_LEAGUE_ID, name, FANTASY_COMPETITION_ID, 5, 5, 2, 3, 2, 3)
     ])
 
+    if fake_users:
+        await add_fake_users()
+
     await fantasy_client.send_insert_stat_multipliers([
         StatMultiplier('kills', 0.3, league_id=FANTASY_LEAGUE_ID),
         StatMultiplier('assists', 0.1, league_id=FANTASY_LEAGUE_ID),
@@ -70,8 +73,14 @@ async def create_league(
         StatMultiplier('roshans', 1.0, league_id=FANTASY_LEAGUE_ID),
     ])
 
+    await fantasy_client.send_insert_max_players_per_position([
+        MaxPlayersPerPosition('support', 2, 2, league_id=FANTASY_LEAGUE_ID),
+        MaxPlayersPerPosition('core', 2, 2, league_id=FANTASY_LEAGUE_ID),
+        MaxPlayersPerPosition('offlane', 1, 1, league_id=FANTASY_LEAGUE_ID),
+
+    ])
+
     now = datetime.datetime.now(datetime.timezone.utc)
-    period_ids = [uuid.uuid4() for _ in range(5)]
     period_inserts = []
     for i, p in enumerate(period_starts):
         final_period = False
@@ -82,13 +91,11 @@ async def create_league(
             final_period = True
 
         # equal to number of teams playing on that day
-        # TODO need to make only one offlaner pickable, otherwise someone can take two of them, leaving
-        # someone with zero viable picks
         users_per_draft = 3 if final_period else 4
         period_inserts.append(Period(
-            period_ids[0], 'Day {}'.format(i+1), (p.strftime(DATE_FMT), next_period.strftime(DATE_FMT)),
-            2.0 if final_period else 1.0, users_per_draft, 20, (p + draft_start_before_period).strftime(DATE_FMT),
-            (now + draft_lockdown_before_period).strftime(DATE_FMT), league_id=FANTASY_LEAGUE_ID
+            uuid.uuid4(), 'Day {}'.format(i+1), (p.strftime(DATE_FMT), next_period.strftime(DATE_FMT)),
+            2.0 if final_period else 1.0, users_per_draft, 20, (p - draft_start_before_period).strftime(DATE_FMT),
+            (now - draft_lockdown_before_period).strftime(DATE_FMT), league_id=FANTASY_LEAGUE_ID
         ))
     await fantasy_client.send_insert_periods(period_inserts)
 
@@ -118,11 +125,8 @@ async def create_league(
         p["fantasy_id"],
     ) for t in teams for p in t["players"]])
 
-    valid_players = [ValidPlayer(player_id=p["fantasy_id"], period_id=period_id) for t in teams for p in t["players"] for period_id in period_ids]
+    valid_players = [ValidPlayer(player_id=p["fantasy_id"], period_id=period.period_id) for t in teams for p in t["players"] for period in period_inserts]
     await fantasy_client.send_insert_valid_players(valid_players)
-
-    if fake_users:
-        await add_fake_users()
 
 
 if __name__ == "__main__":
@@ -137,5 +141,6 @@ if __name__ == "__main__":
         # 12027, 'ESL Birmingham',
         11979, 'Blast Bounty Hunt',
         period_starts, draft_lockdown_before_period=datetime.timedelta(hours=3),
+        #period_starts, draft_lockdown_before_period=datetime.timedelta(hours=9001),
         draft_start_before_period=datetime.timedelta(hours=1), fake_users=True
     ))

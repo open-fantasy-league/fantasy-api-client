@@ -25,6 +25,9 @@ class FantasyWebsocketClient(WebsocketClient):
     async def send_insert_stat_multipliers(self, data: List[StatMultiplier]):
         return await self.send_and_get_resp("StatMultiplier", data)
 
+    async def send_insert_max_players_per_position(self, data: List[MaxPlayersPerPosition]):
+        return await self.send_and_get_resp("MaxPlayersPerPosition", data)
+
     async def send_insert_users(self, data: List[ExternalUser]):
         return await self.send_and_get_resp("ExternalUser", data)
 

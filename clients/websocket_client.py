@@ -1,5 +1,6 @@
 import asyncio
 from collections import defaultdict
+from pprint import pprint
 
 import websockets
 import json
@@ -29,7 +30,7 @@ class WebsocketClient:
             raise Exception("Websocket still None after 5 attempts")
 
         message_id = message_id or str(uuid.uuid4())
-        print("Sending {} ({}):\n {}\n\n".format(method, message_id, data))
+        print("Sending {} ({}):\n {}\n".format(method, message_id, data))
         msg = {
             "message_id": message_id,
             "method": method,
@@ -37,9 +38,6 @@ class WebsocketClient:
         }
         resp_event = asyncio.Event()
         self.resp_events[message_id] = resp_event
-        print("\n\n")
-        print(json.dumps(msg, cls=Encoder))
-        print("\n\n")
         await self.websocket.send(json.dumps(msg, cls=Encoder))
         await asyncio.sleep(0)
         return resp_event
@@ -57,7 +55,6 @@ class WebsocketClient:
             resp = json.loads(response)
             if resp['mode'] in ('resp', 'error'):
                 self.resps[resp['message_id']] = resp
-                print(self.resp_events)
                 self.resp_events[resp['message_id']].set()
             elif resp['mode'] == 'push':
                 await self.sub_events.put(resp)

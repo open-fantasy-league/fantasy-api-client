@@ -70,6 +70,14 @@ class FantasyTeam:
 
 
 @dataclass
+class MaxPlayersPerPosition:
+    position: str
+    team_max: int
+    squad_max: int
+    league_id: Optional[uuid.UUID] = None
+
+
+@dataclass
 class League:
     league_id: uuid.UUID
     name: str
@@ -84,6 +92,7 @@ class League:
     periods: Optional[List[Period]] = None
     stat_multipliers: Optional[List[StatMultiplier]] = None
     fantasy_teams: Optional[List[FantasyTeam]] = None
+    max_players_per_position: Optional[List[MaxPlayersPerPosition]] = None
 
 
 @dataclass
