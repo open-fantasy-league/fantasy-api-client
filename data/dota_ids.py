@@ -1,4 +1,13 @@
 TEAM_IDS_TO_NAMES = {
+    7554697: "Nigma",
+    2163: 'Team Liquid',
+    1838315: 'Team Secret',
+    2586976: 'OG',
+    6214973: 'Ninjas in Pyjamas',
+    111474: 'Alliance',
+}
+
+OLD_TEAM_IDS_TO_NAMES = {
     1838315: 'Team Secret',
 1883502: 'Virtus.Pro',
 726228: 'Vici Gaming',
@@ -21,29 +30,6 @@ TEAM_IDS_TO_NAMES = {
 }
 
 TEAM_NAMES_TO_IDS = {v: k for k, v in TEAM_IDS_TO_NAMES.items()}
-
-# TODO uuid
-DOTA_TEAM_IDS_TO_FANTASY = {
-    1838315: 'Team Secret',
-1883502: 'Virtus.Pro',
-726228: 'Vici Gaming',
-    39: 'Evil Geniuses',
-2626685: 'Keen Gaming',
-2586976: 'OG',
-36: 'Navi',
-543897: 'Mineski',
-350190: 'Fnatic',
-15: 'PSG.LGD',
-6214973: 'Ninjas in Pyjamas',
-111474: 'Alliance',
-2108395: 'TNC Predator',
-2163: 'Team Liquid',
-2672298: 'Infamous',
-6214538: 'Newbee',
-7203342: 'Chaos',
-6209804: 'RNG',
-    1375614    : 'Newbee'
-}
 
 DOTA_PLAYER_IDS_TO_FANTASY = {
 
