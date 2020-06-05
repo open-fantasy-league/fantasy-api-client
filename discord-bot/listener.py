@@ -12,7 +12,8 @@ class PlayerHandler:
     def __init__(self):
         self.result_client = ResultWebsocketClient()
         self.result_client.run()
-        self.teams_and_players = await self.result_client.send_sub_teams(SubTeam(toggle=True))
+        teams_and_players_resp = await self.result_client.send_sub_teams(SubTeam(toggle=True))
+        self.teams_and_players = teams_and_players_resp["data"]
         # a double loop, get all the players, in all the teams
         self.players = [p for t in self.teams_and_players for p in t["players"]]
         self.simplified_player_names_to_id = {simplified_str(p["name"]): p["player_id"] for p in self.players}
@@ -23,7 +24,7 @@ class FantasyHandler:
     def __init__(self):
         self.client = FantasyWebsocketClient()
         self.client.run()
-        self.users = await self.client.send_sub_users(SubUser(toggle=True))
+        self.users = (await self.client.send_sub_users(SubUser(toggle=True)))["data"]["users"]
         self.discord_user_id_to_fantasy_id = {u["meta"]["discord_id"]: u["external_user_id"] for u in self.users}
 
     async def draft_listen(self, draft_init_callback, new_draft_callback, new_pick_callback):
@@ -46,9 +47,10 @@ class FantasyHandler:
         # As it's meant to run forever that's probably ok
         # but could be improved by "top level" function running client and passing into this func,
         # then in main can asyncio.gather() on the client + other futures.
-        drafts = await self.client.send_sub_drafts(
+        drafts_resp = await self.client.send_sub_drafts(
             SubDraft(all=True)
         )
+        drafts = drafts_resp["data"]
         draft_init_callback(drafts)
         while True:
             new_msg = self.client.sub_events.get()

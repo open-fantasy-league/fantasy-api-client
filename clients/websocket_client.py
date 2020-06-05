@@ -6,6 +6,7 @@ import websockets
 import json
 import uuid
 
+from utils.errors import ApiException
 from utils.utils import Encoder
 
 
@@ -46,6 +47,9 @@ class WebsocketClient:
         message_id = message_id or str(uuid.uuid4())
         resp_event = await self.send(method, data, message_id)
         await resp_event.wait()
+        resp = self.resps[message_id]
+        if resp["mode"] == "error":
+            raise ApiException(resp)
         return self.resps[message_id]
 
     async def listener(self):
