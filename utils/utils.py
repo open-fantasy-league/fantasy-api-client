@@ -46,4 +46,4 @@ class Encoder(json.JSONEncoder):
 
 
 def simplified_str(name):
-    return ''.join((c.lower()) for c in name if not c.isalnum())
+    return ''.join((c.lower()) for c in name if c.isalnum())

@@ -97,11 +97,13 @@ class FantasyDota(commands.Cog):
         # I now think space-separated is fine (was imaging sometimes pros had spaces in their names, but
         # a) they actually dont when checking wiki. b) even if they do can just say "dont use spaces")
         if len(args) > 0:
+            print(args)
             player_names = ["puppey", "derek", "fng"]
             try:
                 player_ids = [self.player_handler.simplified_player_names_to_id[simplified_str(n)] for n in player_names]
             except KeyError as e:
                 # TOMAYBEDO return full player-typed name, not simplified.
+                print(e)
                 return await ctx.send(
                     f'Invalid player: {e}. !players to see available picks. '
                     f'I.e. order! puppey fng zai micke'
