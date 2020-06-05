@@ -59,8 +59,11 @@ For now will have team == squad, no "benched players", so simplifies things.
 ### TODO
 
 - discord api requirements
-  - create private channel
+  - ~~create private channel~~
     - ~~create role~~
-    - add role to users
+    - ~~add role to users~~
   - ~~destroy channel~~
-  - private message
+  - ~~send pm~~
+  - ~~receive pm~~ dont need to "recieve" pms so to speak. can use checks
+  to decide which commands work in pms or in guild
+- [format](https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py) default help message? 
