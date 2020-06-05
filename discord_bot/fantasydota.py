@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from messages.fantasy_msgs import DraftQueue
 from utils.utils import simplified_str
-from .listener import PlayerHandler, FantasyHandler
+from discord_bot.listener import PlayerHandler, FantasyHandler
 
 # TODO @ThePianoDentist
 RULES = '```lists how many players per team/per position```'
