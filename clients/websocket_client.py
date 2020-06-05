@@ -13,6 +13,7 @@ from utils.utils import Encoder
 class WebsocketClient:
 
     def __init__(self, addr, port):
+        print(f"Websocket client for {addr}:{port}")
         self.addr = addr
         self.port = port
         self.websocket = None

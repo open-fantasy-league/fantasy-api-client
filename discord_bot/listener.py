@@ -26,7 +26,7 @@ class PlayerHandler:
         self.teams_and_players = teams_and_players_resp["data"]
         # a double loop, get all the players, in all the teams
         self.players = [p for t in self.teams_and_players for p in t["players"]]
-        self.simplified_player_names_to_id = {simplified_str(p["name"]): p["player_id"] for p in self.players}
+        self.simplified_player_names_to_id = {simplified_str(p["names"][0]): p["player_id"] for p in self.players}
         print("Loaded PlayerHandler")
 
 
