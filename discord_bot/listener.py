@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from clients.fantasy_websocket_client import FantasyWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
@@ -10,7 +11,7 @@ from utils.utils import simplified_str
 class PlayerHandler:
 
     def __init__(self):
-        self.result_client = ResultWebsocketClient()
+        self.result_client = ResultWebsocketClient(os.getenv('ADDRESS', '0.0.0.0'))
         # better to init to None, than empty list/dict, as then more obvious when someone
         # forgets to await start()
         self.teams_and_players = None
@@ -32,8 +33,7 @@ class PlayerHandler:
 class FantasyHandler:
 
     def __init__(self):
-        self.client = FantasyWebsocketClient()
-        self.client.run()
+        self.client = FantasyWebsocketClient(os.getenv('ADDRESS', '0.0.0.0'))
         self.users = None
         self.discord_user_id_to_fantasy_id = None
 
