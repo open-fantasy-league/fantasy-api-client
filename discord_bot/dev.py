@@ -105,6 +105,7 @@ class Dev(commands.Cog):
 
 
 def setup(bot):
+    print("in dev setup")
     bot.add_cog(Dev(bot))    
 
 def teardown(bot):

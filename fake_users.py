@@ -17,7 +17,7 @@ async def add_fake_users():
     with open("data/players.json") as f:
         dota_teams = json.load(f)
     for i in range(35):
-        user = ExternalUser(uuid.uuid4(), f"tpain{i}")
+        user = ExternalUser(uuid.uuid4(), f"tpain{i}", meta={'discord_id': f'blahblah{i}'})
         team = FantasyTeam(uuid.uuid4(), user.external_user_id, FANTASY_LEAGUE_ID, f'tpain{i}_team', meta={'discord_id': f'blahblah{i}'})
         users.append(user)
         teams.append(team)

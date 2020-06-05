@@ -1,6 +1,7 @@
 """
 Fantasy Dota cog
 """
+import asyncio
 
 from discord.ext import commands
 
@@ -19,6 +20,11 @@ class FantasyDota(commands.Cog):
         self.bot = bot
         self.player_handler = PlayerHandler()
         self.fantasy_handler = FantasyHandler()
+
+    async def start(self):
+        print("in start")
+        await asyncio.gather(self.player_handler.start(), self.fantasy_handler.start())
+        return 42
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -116,8 +122,29 @@ class FantasyDota(commands.Cog):
         else:
             await ctx.send(f'Provide a comma separated list. I.e. Ex. order! puppey, fng, zai, micke')
 
+
 def setup(bot):
-    bot.add_cog(FantasyDota(bot))    
+    """
+    cant make this async, so it's a bit of a faff, doing async setup stuff
+    :param bot:
+    :return:
+    """
+    cog = FantasyDota(bot)
+    asyncio.run(cog.start())
+    # IGNORE THE BELOW. APPARENTLY nowadays asyncio.run() just work (tm), and will create a new event loop for us,
+    # to run that func, and then it switches back to the existing event-loop discord setup?
+
+    #future = asyncio.run_coroutine_threadsafe(cog.start(), asyncio.get_event_loop())
+    # future.result blocks the current thread....so that doesn't work.
+    #     res = future.result()
+    # Think do either need to just not wait for start to finish,
+    # i.e. bot starts running whilst it's still starting up
+    # could have commands check a self.initialized, that gets set at end of start, and error early if they hit it
+    # (this would be a cool use of a decorator)
+
+    # The alternative is to create a new thread to call `start` in, and we are able to then do future.result(),
+    # which would wait in this thread, but the other thread would be able to do the work
+    bot.add_cog(cog)
 
 def teardown(bot):
     print('fantasydota teardown')
