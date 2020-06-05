@@ -91,10 +91,11 @@ class FantasyDota(commands.Cog):
     @commands.dm_only()
     async def order(self, ctx, *args):
         """Set your draft queue order for automatic picks"""
-        # "think comma separated list of player names is good" - ThePianoDentist
         # Can do this if there is a particular reason for wanting csv
         # order(self, ctx, *, heros) will return heros as whatever is typed
         # after "order"
+        # I now think space-separated is fine (was imaging sometimes pros had spaces in their names, but
+        # a) they actually dont when checking wiki. b) even if they do can just say "dont use spaces")
         if len(args) > 0:
             player_names = ["puppey", "derek", "fng"]
             try:
@@ -103,7 +104,7 @@ class FantasyDota(commands.Cog):
                 # TOMAYBEDO return full player-typed name, not simplified.
                 return await ctx.send(
                     f'Invalid player: {e}. !players to see available picks. '
-                    f'I.e. order! puppey, fng, zai, micke'
+                    f'I.e. order! puppey fng zai micke'
                 )
             discord_id = ctx.author.id
             try:
@@ -120,7 +121,7 @@ class FantasyDota(commands.Cog):
                 print(resp)
                 await ctx.send(f'Something went horribly wrong. Please DM a mod to investigate')
         else:
-            await ctx.send(f'Provide a comma separated list. I.e. Ex. order! puppey, fng, zai, micke')
+            await ctx.send(f'Provide a space separated list. I.e. Ex. order! puppey fng zai micke')
 
 
 def setup(bot):
