@@ -43,3 +43,7 @@ class Encoder(json.JSONEncoder):
         # TODO datetime ser
         # Base class default() raises TypeError:
         return json.JSONEncoder.default(self, obj)
+
+
+def simplified_str(name):
+    return ''.join((c.lower()) for c in name if not c.isalnum())
