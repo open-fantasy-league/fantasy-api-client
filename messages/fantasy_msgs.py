@@ -53,6 +53,22 @@ class Period:
 
 
 @dataclass
+class PeriodUpdate:
+    period_id: uuid.UUID
+    name: Optional[str] = None
+    timespan: Optional[Tuple[str, str]] = None
+    points_multiplier: Optional[float] = None
+    teams_per_draft: Optional[int] = None
+    draft_interval_secs: Optional[int] = None
+    draft_start: Optional[str] = None
+
+    # Draft-lockdown is the time when server locks in users who are playing, and sets the draft choice order.
+    # (i.e. anybody who joins league after draft lockdown, doesnt get a draft for that period. they sit out)
+    draft_lockdown: Optional[str] = None
+    meta: Optional[dict] = None
+
+
+@dataclass
 class StatMultiplier:
     name: str
     multiplier: float

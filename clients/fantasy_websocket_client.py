@@ -22,6 +22,9 @@ class FantasyWebsocketClient(WebsocketClient):
     async def send_insert_periods(self, data: List[Period]):
         return await self.send_and_get_resp("Period", data)
 
+    async def send_update_periods(self, data: List[PeriodUpdate]):
+        return await self.send_and_get_resp("PeriodUpdate", data)
+
     async def send_insert_stat_multipliers(self, data: List[StatMultiplier]):
         return await self.send_and_get_resp("StatMultiplier", data)
 
