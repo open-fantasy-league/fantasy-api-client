@@ -59,7 +59,7 @@ async def create_league(
     ])
 
     if fake_users:
-        await add_fake_users()
+        await add_fake_users(fantasy_client)
 
     await fantasy_client.send_insert_stat_multipliers([
         StatMultiplier('kills', 0.3, league_id=FANTASY_LEAGUE_ID),

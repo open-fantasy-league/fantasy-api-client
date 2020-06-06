@@ -13,20 +13,43 @@ class Dev(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
+    @commands.group()
     async def clear(self, ctx):
+        """Clear stuff"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send("Clear what?")
+
+    @clear.command(name="messages")
+    async def clear_messages(self, ctx):
         """Clear up to 100 channel messages."""
         channel = ctx.message.channel
         await channel.purge()
         await ctx.send("Finished cleaning. Bery nice.")
-
+    
+    @clear.command(name="channels")
+    async def clear_channels(self, ctx):
+        """Delete all channels"""
+        for channel in ctx.guild.channels:
+            if channel.name not in ["ct-test", "jk-test"]:
+                await channel.delete()
+        await ctx.send("Finished cleaning. Bery nice.")
+    
+    @clear.command(name="roles")
+    async def clear_roles(self, ctx):
+        """Delete all roles"""
+        for role in ctx.guild.roles:
+            if role.managed or role.is_default() or role.name in ["admin"]:
+                continue
+            await role.delete()
+        await ctx.send("Finished cleaning. Bery nice.")
+    
     @commands.group()
     async def create(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send("Create what?")
 
-    @create.command()
-    async def channel(self, ctx, name, role: Role = None):
+    @create.command(name="channel")
+    async def create_channel(self, ctx, name, role: Role = None):
         overwrites = {}
         if role:
             overwrites = {
@@ -52,8 +75,8 @@ class Dev(commands.Cog):
         new_channel = await ctx.guild.create_text_channel(name, overwrites=overwrites)
         await ctx.send(f'Created new channel - {new_channel.name} some people who shall not be named because i cant be arse to implement it')
 
-    @create.command()
-    async def role(self, ctx, name):
+    @create.command(name="role")
+    async def create_role(self, ctx, name):
         random_color = Color.from_rgb(randint(0, 255), randint(0, 255), randint(0, 255))
         new_role = await ctx.guild.create_role(name=name, color=random_color)
         if new_role:
@@ -65,12 +88,9 @@ class Dev(commands.Cog):
     async def delete(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send("Delete what?")
-    
-    # what the actual fuck is going on. why do group commands sometimes need self
-    # sometimes dont...
 
-    @delete.command()
-    async def dchannel(self, ctx, *, channel: TextChannel):
+    @delete.command(name="channel")
+    async def delete_channel(self, ctx, *, channel: TextChannel):
         if channel:
             deleted_name = channel.name
             await channel.delete()
@@ -78,8 +98,8 @@ class Dev(commands.Cog):
         else:
             await ctx.send(f'No channel found')
 
-    @delete.command()
-    async def drole(self, ctx, *, role: Role):
+    @delete.command(name="role")
+    async def delete_role(self, ctx, *, role: Role):
         if role:
             deleted_name = role.name
             await role.delete()
@@ -92,8 +112,8 @@ class Dev(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send("Add what?")
 
-    @add.command()
-    async def arole(self, ctx, member: Member, role: Role):
+    @add.command(name="role")
+    async def add_role(self, ctx, member: Member, role: Role):
         if member and role:
             await member.add_roles(role)
             await ctx.send(f'{member} added to {role}')
@@ -105,8 +125,8 @@ class Dev(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send("Remove what?")
 
-    @remove.command()
-    async def rrole(self, ctx, member: Member, role: Role):
+    @remove.command(name="role")
+    async def remove_role(self, ctx, member: Member, role: Role):
         if member and role:
             await member.remove_roles(role)
             await ctx.send(f'{member} removed from {role}')
@@ -119,12 +139,6 @@ class Dev(commands.Cog):
             await member.send(message)
             await ctx.send(f'Private message sent to {member.name}')
 
-    @commands.command()
-    async def channel_id(self, ctx, channel: TextChannel = None):
-        if channel:
-            await ctx.send(f'channel {channel.name} has id {channel.id}')
-        else:
-            await ctx.send(f'this channels id is {ctx.channel.id}')
 
 
 

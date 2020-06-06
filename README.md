@@ -50,11 +50,19 @@ For now will have team == squad, no "benched players", so simplifies things.
 
 ## Discord bot
 
+### Setup
+
 - `cp default.env .env` and add bot token:
   - got to discord apps [page](https://discord.com/developers/applications)
   - *bot name* > settings > bot > copy token
 - 
 - profit
+
+### Ideas
+
+- Think the faq, rules, scoring stuff while we can leave commands for would be 
+cool if bot creats read only channel(s) for them with the info
+  - Could also do this for leaderboard. Have a read only channel that auto updates
 
 ### TODO
 
