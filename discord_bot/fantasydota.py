@@ -22,8 +22,14 @@ class FantasyDota(commands.Cog):
     """An awesome fantasy dota 2 dota league"""
     def __init__(self, bot):
         self.bot = bot
-        self.fantasy_handler = bot.fantasy_handler
-        self.player_handler = bot.player_handler
+
+    @property
+    def fantasy_handler(self):
+        return self.bot.fantasy_handler
+
+    @property
+    def player_handler(self):
+        return self.bot.player_handler
 
     # show we allow the public commands to also be called form dms?
 

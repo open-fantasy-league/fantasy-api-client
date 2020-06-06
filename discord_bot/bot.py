@@ -24,6 +24,11 @@ if not BOT_TOKEN:
 
 class FantasyBot(commands.Bot):
 
+    def __init__(self, *args, **kwargs):
+        self.player_handler = None
+        self.fantasy_handler = None
+        super().__init__(*args, **kwargs)
+
     async def connect_clients(self):
         # Bot has a member start had to change name, not sure we are doign here to give good name...
         logger.info("fantasy bot connect clients enter")
@@ -34,6 +39,7 @@ class FantasyBot(commands.Bot):
 
     async def on_ready(self):
         logging.info(f'fantasy bot on ready entered')
+        await self.connect_clients()
 
     # @JK listeners youll want for logging
     # Context object docs - https://discordpy.readthedocs.io/en/latest/ext/commands/api.html#context
@@ -68,7 +74,7 @@ bot = FantasyBot(command_prefix=COMMAND_PREFIX, case_insensitive=True,
     description=HELP)
 
 # pre connect to discord stuff
-asyncio.run(bot.connect_clients())
+#asyncio.run(bot.connect_clients())
 
 @bot.command()
 async def reload(ctx):
