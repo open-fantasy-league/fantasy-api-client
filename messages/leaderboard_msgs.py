@@ -47,3 +47,9 @@ class Leaderboard:
     meta: dict = field(default_factory=dict)
     stats: Optional[List[Stat]] = None
 
+
+@dataclass
+class LatestStat:
+    player_id: uuid.UUID
+    leaderboard_id: uuid.UUID
+    points: float = 0.0,

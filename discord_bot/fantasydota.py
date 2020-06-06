@@ -21,17 +21,20 @@ class FantasyDota(commands.Cog):
     """An awesome fantasy dota 2 dota league"""
     def __init__(self, bot):
         self.bot = bot
-        self.player_handler = PlayerHandler()
-        self.fantasy_handler = FantasyHandler()
+        self.player_handler = None  # PlayerHandler()
+        self.fantasy_handler = None  # FantasyHandler()
 
     async def start(self):
         logger.info("in start")
+        self.player_handler = PlayerHandler()
+        self.fantasy_handler = FantasyHandler()
         await asyncio.gather(self.player_handler.start(), self.fantasy_handler.start())
         return 42
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f'FantasyDota cog read')
+        print(f'{self.bot.user} has logged in!')
+        await self.start()
 
     # show we allow the public commands to also be called form dms?
 
@@ -100,7 +103,7 @@ class FantasyDota(commands.Cog):
         # I now think space-separated is fine (was imaging sometimes pros had spaces in their names, but
         # a) they actually dont when checking wiki. b) even if they do can just say "dont use spaces")
         if len(args) > 0:
-            player_names = ["puppey", "derek", "fng"]
+            player_names = args
             try:
                 player_ids = [self.player_handler.simplified_player_names_to_id[simplified_str(n)] for n in player_names]
             except KeyError as e:
@@ -126,6 +129,9 @@ class FantasyDota(commands.Cog):
         else:
             await ctx.send(f'Provide a space separated list. I.e. Ex. order! puppey fng zai micke')
 
+        async def on_new_draft(self, msg):
+            print(msg)
+
 
 def setup(bot):
     """
@@ -134,7 +140,11 @@ def setup(bot):
     :return:
     """
     cog = FantasyDota(bot)
-    asyncio.run(cog.start())
+
+    # Cant start the clients here, because after setup...the bot creates its own event-loop,
+    # and whichever used here is destroyed....which cancels the tasks for the clients that are listening to new msgs
+
+    #cog.start()
     # IGNORE THE BELOW. APPARENTLY nowadays asyncio.run() just work (tm), and will create a new event loop for us,
     # to run that func, and then it switches back to the existing event-loop discord setup?
 
