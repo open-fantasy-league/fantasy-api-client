@@ -30,11 +30,8 @@ MATCH_DETAILS_OPEN_DOTA_URL = "https://api.opendota.com/api/matches/{match_id}"
 
 
 result_client = ResultWebsocketClient()
-result_client_fut = result_client.run()
 fantasy_client = FantasyWebsocketClient()
-fantasy_client_fut = result_client.run()
 leaderboard_client = LeaderboardWebsocketClient()
-leaderboard_client_fut = result_client.run()
 
 DOTA_TO_FANTASY_LEAGUE_IDS = {12027: FANTASY_COMPETITION_ID}
 
@@ -131,5 +128,10 @@ async def get_league_results(league_id, tstamp_from=0):
              player_points_dict.values()]
         )
 
+
+async def main():
+    await asyncio.gather(get_league_results(12027), result_client.run(), leaderboard_client.run(), fantasy_client.run())
+
+
 if __name__ == "__main__":
-    asyncio.run(get_league_results(12027))
+    asyncio.run(main())
