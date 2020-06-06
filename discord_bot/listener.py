@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 
 from clients.fantasy_websocket_client import FantasyWebsocketClient
@@ -7,6 +8,8 @@ from messages.fantasy_msgs import SubDraft, SubUser
 from messages.result_msgs import SubTeam
 from utils.utils import simplified_str
 
+
+logger = logging.getLogger(__name__)
 
 class PlayerHandler:
 
@@ -20,15 +23,16 @@ class PlayerHandler:
 
     # cannot call async funcs in __init__ so need to split into 2-steps
     async def start(self):
-        print("Starting PlayerHandler")
+        logger.info("Starting PlayerHandler")
         asyncio.create_task(self.result_client.run())
         teams_and_players_resp = await self.result_client.send_sub_teams(SubTeam(toggle=True))
         self.teams_and_players = teams_and_players_resp["data"]
         # a double loop, get all the players, in all the teams
         self.players = [p["player"] for t in self.teams_and_players for p in t["players"]]
-        print(self.players)
+        logger.info("PlayerHandler start: players added")
+        logger.debug(self.players)
         self.simplified_player_names_to_id = {simplified_str(p["names"][0]["name"]): p["player_id"] for p in self.players}
-        print("Loaded PlayerHandler")
+        logger.info("Loaded PlayerHandler")
 
 
 class FantasyHandler:
@@ -39,11 +43,11 @@ class FantasyHandler:
         self.discord_user_id_to_fantasy_id = None
 
     async def start(self):
-        print("Starting FantasyHandler")
+        logger.info("Starting FantasyHandler")
         asyncio.create_task(self.client.run())
         self.users = (await self.client.send_sub_users(SubUser(toggle=True)))["data"]["users"]
         self.discord_user_id_to_fantasy_id = {u["meta"]["discord_id"]: u["external_user_id"] for u in self.users}
-        print("Loaded FantasyHandler")
+        logger.info("Loaded FantasyHandler")
 
     async def draft_listen(self, draft_init_callback, new_draft_callback, new_pick_callback):
         """

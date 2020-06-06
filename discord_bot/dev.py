@@ -1,13 +1,15 @@
 """
 Dev cog
 """
-
+import logging
 from random import randint
 
 from discord import Color, TextChannel, Role, Member, PermissionOverwrite
 from discord.utils import get as dget # LUL
 from discord.ext import commands
 
+
+logger = logging.getLogger(__name__)
 
 class Dev(commands.Cog):
     def __init__(self, bot):
@@ -138,13 +140,17 @@ class Dev(commands.Cog):
         if member:
             await member.send(message)
             await ctx.send(f'Private message sent to {member.name}')
+    
+    @commands.command()
+    async def info(self, ctx):
+        await ctx.send((ctx.author.name, ctx.author.discriminator, ctx.author.id))
 
 
 
 
 def setup(bot):
-    print("in dev setup")
+    logging.info("cog: dev setup")
     bot.add_cog(Dev(bot))    
 
 def teardown(bot):
-    print('dev teardown')
+    logging.info('cog: dev teardown')

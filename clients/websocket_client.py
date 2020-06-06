@@ -64,7 +64,10 @@ class WebsocketClient:
                 # @JK is it possible to let the bot catch this exception to handle
                 # when server goes down? (if thats even worthile anyway...)
                 response = await self.websocket.recv()
-                logger.info("RESPONSE: {}\n".format(response))
+                # maybe not such a smart change, cos if actually want to see this stuff
+                # setting logger to debug gives a load of other shit too...
+                logger.info("RESPONSE received - TODO give small amount of useful info")
+                logger.debug("RESPONSE: {}\n".format(response))
                 resp = json.loads(response)
                 if resp['mode'] in ('resp', 'error'):
                     self.resps[resp['message_id']] = resp
