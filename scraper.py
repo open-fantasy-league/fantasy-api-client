@@ -130,7 +130,10 @@ async def get_league_results(league_id, tstamp_from=0):
 
 
 async def main():
-    await asyncio.gather(get_league_results(12027), result_client.run(), leaderboard_client.run(), fantasy_client.run())
+    asyncio.create_task(result_client.run())
+    asyncio.create_task(fantasy_client.run())
+    asyncio.create_task(leaderboard_client.run())
+    await get_league_results(12027)
 
 
 if __name__ == "__main__":
