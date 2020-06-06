@@ -18,6 +18,12 @@ from data.dota_ids import FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, FANT
     FANTASY_COMPETITION_ID, TEAM_NAMES_TO_IDS
 
 
+import os
+import dotenv
+
+dotenv.load_dotenv()
+ADDRESS = os.getenv('ADDRESS', '0.0.0.0')
+
 async def create_league(
         league_id: int, name: str,
         period_starts: List[datetime.datetime],
@@ -25,11 +31,11 @@ async def create_league(
         draft_lockdown_before_period: datetime.timedelta = datetime.timedelta(hours=3),
         fake_users: bool =False
 ):
-    result_client = ResultWebsocketClient('0.0.0.0', 3001)
+    result_client = ResultWebsocketClient(ADDRESS, 3001)
     asyncio.create_task(result_client.run())
-    fantasy_client = FantasyWebsocketClient('0.0.0.0', 3003)
+    fantasy_client = FantasyWebsocketClient(ADDRESS, 3003)
     asyncio.create_task(fantasy_client.run())
-    leaderboard_client = LeaderboardWebsocketClient('0.0.0.0', 3002)
+    leaderboard_client = LeaderboardWebsocketClient(ADDRESS, 3002)
     asyncio.create_task(leaderboard_client.run())
 
     start_time = datetime.datetime(2020, 5, 10, tzinfo=datetime.timezone.utc)
