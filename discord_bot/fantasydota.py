@@ -126,6 +126,9 @@ class FantasyDota(commands.Cog):
         else:
             await ctx.send(f'Provide a space separated list. I.e. Ex. order! puppey fng zai micke')
 
+        async def on_new_draft(self, msg):
+            print(msg)
+
 
 def setup(bot):
     """

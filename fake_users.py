@@ -8,8 +8,8 @@ from messages.fantasy_msgs import ExternalUser, FantasyTeam, DraftQueue
 from data.dota_ids import FANTASY_LEAGUE_ID
 
 
-async def add_fake_users():
-    fantasy_client = FantasyWebsocketClient('0.0.0.0', 3003)
+async def add_fake_users(client=None):
+    fantasy_client = FantasyWebsocketClient('0.0.0.0', 3003) if client is None else client
     asyncio.create_task(fantasy_client.run())
     users = []
     teams = []

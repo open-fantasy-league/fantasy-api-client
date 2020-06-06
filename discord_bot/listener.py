@@ -74,7 +74,7 @@ class FantasyHandler:
             new_msg = self.client.sub_events.get()
             print(f"Draft listener received new msg: {new_msg}")
             if new_msg["message_type"] == "draft":
-                new_draft_callback(new_msg)
+                new_draft_callback(new_msg) # think these need to be awaited
             elif new_msg["message_type"] == "pick":
                 new_pick_callback(new_msg)
 

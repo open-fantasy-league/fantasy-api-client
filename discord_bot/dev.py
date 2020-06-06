@@ -88,9 +88,6 @@ class Dev(commands.Cog):
     async def delete(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send("Delete what?")
-    
-    # what the actual fuck is going on. why do group commands sometimes need self
-    # sometimes dont...
 
     @delete.command(name="channel")
     async def delete_channel(self, ctx, *, channel: TextChannel):
