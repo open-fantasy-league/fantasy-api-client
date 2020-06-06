@@ -4,7 +4,7 @@ import os
 import dotenv
 from discord.ext import commands
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 dotenv.load_dotenv()
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections import defaultdict
 from pprint import pprint
 
@@ -8,6 +9,8 @@ import uuid
 
 from utils.errors import ApiException
 from utils.utils import Encoder
+
+logger = logging.getLogger(__name__)
 
 
 class WebsocketClient:
@@ -67,5 +70,6 @@ class WebsocketClient:
 
     async def run(self):
         async with websockets.connect('ws://{}:{}/echo'.format(self.addr, self.port)) as websocket:
+            logger.info('Websocket connected ws://{}:{}/echo'.format(self.addr, self.port))
             self.websocket = websocket
             await self.listener()
