@@ -16,7 +16,7 @@ from messages.fantasy_msgs import SubLeague
 from messages.leaderboard_msgs import SubLeaderboard, Stat
 from messages.result_msgs import SubCompetition, TeamMatchResult, PlayerResult, SubTeam
 from utils.constants import DATE_FMT
-from data.dota_ids import FANTASY_COMPETITION_ID
+from data.dota_ids import FANTASY_COMPETITION_ID, FANTASY_USER_LEADERBOARD_ID, FANTASY_PLAYER_LEADERBOARD_ID
 
 dotenv.load_dotenv()
 APIKEY = os.getenv("STEAMAPIKEY")
@@ -25,7 +25,7 @@ if not APIKEY:
 
 LEAGUE_LISTING_URL = "http://api.steampowered.com/IDOTA2Match_570/GetLeagueListing/v0001?key={key}"
 MATCH_LISTING_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v0001?key={key}&league_id={league_id}"
-MATCH_DETAILS_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/v0001?key={key}&league_id={match_id}"
+MATCH_DETAILS_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/v0001?key={key}&match_id={match_id}"
 MATCH_DETAILS_OPEN_DOTA_URL = "https://api.opendota.com/api/matches/{match_id}"
 
 DOTA_TO_FANTASY_LEAGUE_IDS = {12027: FANTASY_COMPETITION_ID}
@@ -33,17 +33,17 @@ DOTA_TO_FANTASY_LEAGUE_IDS = {12027: FANTASY_COMPETITION_ID}
 
 async def get_league_results(result_client, fantasy_client, leaderboard_client, league_id, tstamp_from=0):
     fantasy_competitition_id = DOTA_TO_FANTASY_LEAGUE_IDS[league_id]
-    match_list = rate_limited_retrying_request(MATCH_LISTING_URL.format(key=APIKEY, league_id=league_id))
-    fantasy_competition_hierarchy = await result_client.send_sub_competitions(
+    match_list = rate_limited_retrying_request(MATCH_LISTING_URL.format(key=APIKEY, league_id=league_id))["result"]["matches"]
+    fantasy_competition_hierarchy = (await result_client.send_sub_competitions(
         SubCompetition(all=False, sub_competition_ids=[fantasy_competitition_id])
-    )
-    fantasy_teams_and_players = await result_client.send_sub_teams(
+    ))["data"]
+    fantasy_teams_and_players = (await result_client.send_sub_teams(
         SubTeam(toggle=True)
-    )
+    ))["data"]
     DOTA_TO_FANTASY_TEAM_IDS = {t["meta"]["dota_id"]: t["team_id"] for t in fantasy_teams_and_players}
-    DOTA_TO_FANTASY_PLAYER_IDS = {p["meta"]["dota_id"]: p["team_id"] for t in fantasy_teams_and_players for p in t["players"]}
+    DOTA_TO_FANTASY_PLAYER_IDS = {p["player"]["meta"]["dota_id"]: p["team_id"] for t in fantasy_teams_and_players for p in t["players"]}
 
-    fantasy_matches = (s["matches"] for s in fantasy_competition_hierarchy["data"][0]["series"])
+    fantasy_matches = (s["matches"] for s in fantasy_competition_hierarchy[0]["series"])
     fantasy_leagues = await fantasy_client.send_sub_leagues(
         SubLeague(all=True)
     )
@@ -52,14 +52,11 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
     existing_match_ids = (m["meta"]["dota_id"] for m in fantasy_matches if len(m["team_match_results"]) != 0)
     matches_to_scrape = [m['match_id'] for m in match_list if m['match_id'] not in existing_match_ids and m['start_time'] >= tstamp_from]
     # TODO handle the dodgy api matches/remakes
-    for match_id in matches_to_scrape:
-        leaderboards = await leaderboard_client.send_sub_leaderboards(
-            SubLeaderboard(all=True)
-        )
-
-        user_points = next(l for l in leaderboards["data"] if l["name"] == "User Points")["stats"][-1]
+    for match_id in [5455384177]:#matches_to_scrape:
+        leaderboards = await leaderboard_client.send_get_latest_leaderboards([FANTASY_USER_LEADERBOARD_ID, FANTASY_PLAYER_LEADERBOARD_ID])
+        user_points = next(l for l in leaderboards["data"] if "User Points" in l["name"])["leaderboard"]
         user_points_dict = {p["player_id"]: p for p in user_points}
-        player_points = next(l for l in leaderboards["data"] if l["name"] == "Player Points")["stats"][-1]
+        player_points = next(l for l in leaderboards["data"] if "Player Points" in l["name"])["leaderboard"]
         player_points_dict = {p["player_id"]: p for p in player_points}
         # TODO search for match with correct teams.
         # For now dont put matches into db preemptively, just add when we get results.
@@ -91,10 +88,24 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
         for player in odota_match_resp['players']:
             fantasy_player_id = DOTA_TO_FANTASY_PLAYER_IDS[player["account_id"]]
             player_result = {"points": 0.0}
+            print(fantasy_league["stat_multipliers"])
             for stat in fantasy_league["stat_multipliers"]:
-                player_result[stat["name"]] = player[stat["name"]]
+                odta_stats = {
+                    "first blood": "firstblood_claimed",
+                    "stun": "stuns",
+                    "GPM": "gold_per_min",
+                    "last hits": "last_hits",
+                    "runes": "rune_pickups",
+                    "roshans": "roshans_killed",
+                    "towers": "towers_killed",
+                    "dewards": "observer_kills",
+                    "observer wards": "obs_placed",
+                }
+                # TODO uncrappify
+                odota_stat_name = odta_stats.get(stat["name"], stat["name"]).replace(" ", "_")
+                player_result[stat["name"]] = player[odota_stat_name]
                 player_result["points"] += (
-                        stat["multiplier"] * player[stat["name"]] + period_multiplier
+                        stat["multiplier"] * player[odota_stat_name] + period_multiplier
                 )
             player_results.append(PlayerResult(
                 fantasy_match_id, fantasy_player_id, player_result
