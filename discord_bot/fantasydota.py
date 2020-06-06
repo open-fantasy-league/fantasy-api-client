@@ -1,15 +1,16 @@
 """
 Fantasy Dota cog
 """
-import asyncio
+import logging
+import uuid
 
 from discord.ext import commands
 
-from messages.fantasy_msgs import DraftQueue
+from messages.fantasy_msgs import DraftQueue, ExternalUser, FantasyTeam
 from utils.utils import simplified_str
-from discord_bot.listener import PlayerHandler, FantasyHandler
+from data.dota_ids import FANTASY_LEAGUE_ID # TODO real fantasy id
 
-import logging
+
 logger = logging.getLogger(__name__)
 
 # TODO @ThePianoDentist
@@ -21,20 +22,8 @@ class FantasyDota(commands.Cog):
     """An awesome fantasy dota 2 dota league"""
     def __init__(self, bot):
         self.bot = bot
-        self.player_handler = None  # PlayerHandler()
-        self.fantasy_handler = None  # FantasyHandler()
-
-    async def start(self):
-        logger.info("in start")
-        self.player_handler = PlayerHandler()
-        self.fantasy_handler = FantasyHandler()
-        await asyncio.gather(self.player_handler.start(), self.fantasy_handler.start())
-        return 42
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print(f'{self.bot.user} has logged in!')
-        await self.start()
+        self.fantasy_handler = bot.fantasy_handler
+        self.player_handler = bot.player_handler
 
     # show we allow the public commands to also be called form dms?
 
@@ -70,8 +59,21 @@ class FantasyDota(commands.Cog):
     @commands.command()
     async def join(self, ctx):
         """Join the league!"""
-        # TODO
-        await ctx.send(f'{ctx.author.name} wants to join the league!')
+        # TODO:
+        # - check if already exist?
+        # - get proper fantasy id from somewhere
+        # - other error handling?
+        # - move this stuff into listener? or summit
+        username = f'{ctx.author.name}#{ctx.author.discriminator}' # do we want to use discriminator?
+        user_id = ctx.author.id # should this be string?
+        user = ExternalUser(uuid.uuid4(), username, meta={'discord_id': user_id})
+        team = FantasyTeam(
+            uuid.uuid4(), user.external_user_id, FANTASY_LEAGUE_ID,
+            f'{username}_team', meta={'discord_id': user_id}
+        ) # very pep 8...
+        await self.fantasy_handler.client.send_insert_users([user])
+        await self.fantasy_handler.client.send_insert_fantasy_teams([team])
+        await ctx.send(f'Congratulations {ctx.author.name} you have succesfully joined the league!')
     
     @commands.group()
     async def draft(self, ctx):
@@ -135,30 +137,12 @@ class FantasyDota(commands.Cog):
 
 def setup(bot):
     """
-    cant make this async, so it's a bit of a faff, doing async setup stuff
     :param bot:
     :return:
     """
+    logging.info('cog: fantasydota setup')
     cog = FantasyDota(bot)
-
-    # Cant start the clients here, because after setup...the bot creates its own event-loop,
-    # and whichever used here is destroyed....which cancels the tasks for the clients that are listening to new msgs
-
-    #cog.start()
-    # IGNORE THE BELOW. APPARENTLY nowadays asyncio.run() just work (tm), and will create a new event loop for us,
-    # to run that func, and then it switches back to the existing event-loop discord setup?
-
-    #future = asyncio.run_coroutine_threadsafe(cog.start(), asyncio.get_event_loop())
-    # future.result blocks the current thread....so that doesn't work.
-    #     res = future.result()
-    # Think do either need to just not wait for start to finish,
-    # i.e. bot starts running whilst it's still starting up
-    # could have commands check a self.initialized, that gets set at end of start, and error early if they hit it
-    # (this would be a cool use of a decorator)
-
-    # The alternative is to create a new thread to call `start` in, and we are able to then do future.result(),
-    # which would wait in this thread, but the other thread would be able to do the work
     bot.add_cog(cog)
 
 def teardown(bot):
-    print('fantasydota teardown')
+    logging.info('cog: fantasydota teardown')
