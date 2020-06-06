@@ -28,15 +28,10 @@ MATCH_LISTING_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchHistory
 MATCH_DETAILS_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/v0001?key={key}&league_id={match_id}"
 MATCH_DETAILS_OPEN_DOTA_URL = "https://api.opendota.com/api/matches/{match_id}"
 
-
-result_client = ResultWebsocketClient()
-fantasy_client = FantasyWebsocketClient()
-leaderboard_client = LeaderboardWebsocketClient()
-
 DOTA_TO_FANTASY_LEAGUE_IDS = {12027: FANTASY_COMPETITION_ID}
 
 
-async def get_league_results(league_id, tstamp_from=0):
+async def get_league_results(result_client, fantasy_client, leaderboard_client, league_id, tstamp_from=0):
     fantasy_competitition_id = DOTA_TO_FANTASY_LEAGUE_IDS[league_id]
     match_list = rate_limited_retrying_request(MATCH_LISTING_URL.format(key=APIKEY, league_id=league_id))
     fantasy_competition_hierarchy = await result_client.send_sub_competitions(
@@ -130,10 +125,16 @@ async def get_league_results(league_id, tstamp_from=0):
 
 
 async def main():
+    # ran into this fun issue defining them outside main, loose in the file
+    # https://stackoverflow.com/a/55918049/3920439
+    result_client = ResultWebsocketClient()
+    fantasy_client = FantasyWebsocketClient()
+    leaderboard_client = LeaderboardWebsocketClient()
+    # can asyncio.gather
     asyncio.create_task(result_client.run())
     asyncio.create_task(fantasy_client.run())
     asyncio.create_task(leaderboard_client.run())
-    await get_league_results(12027)
+    await get_league_results(result_client, fantasy_client, leaderboard_client, 12027)
 
 
 if __name__ == "__main__":
