@@ -33,6 +33,38 @@ class FantasyDota(commands.Cog):
     async def on_ready(self):
         print(f'{self.bot.user} has logged in!')
 
+    # @JK listeners youll want for logging
+    # Context object docs - https://discordpy.readthedocs.io/en/latest/ext/commands/api.html#context
+
+    # NB these 3 are all listeners specifcaly for command extensions.
+    # You can also use all the other listenrs defined for client
+    # https://discordpy.readthedocs.io/en/latest/api.html#event-reference
+
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        """An error handler that is called when an error is raised inside a command either through user input error, check failure, or an error in your own code.
+
+        A default one is provided (Bot.on_command_error())
+        """
+        await self.bot.on_command_error()
+
+    @commands.Cog.listener()
+    async def on_command(self, ctx):
+        """An event that is called when a command is found and is about to be invoked.
+
+        This event is called regardless of whether the command itself succeeds via error or completes.
+        """
+        # eg
+        print(f'{ctx.command.qualified_name} called with {ctx.args[2:]}')
+
+    @commands.Cog.listener()
+    async def on_command_completion(self, ctx):
+        """An event that is called when a command has completed its invocation.
+
+        This event is called only if the command succeeded, i.e. all checks have passed and the user input it correctly.
+        """ 
+        pass
+
     # show we allow the public commands to also be called form dms?
 
     # maybe group rules/scoring by eg info - `info scoring/rules`
