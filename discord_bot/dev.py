@@ -48,7 +48,7 @@ class Dev(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send("Create what?")
 
-    @create.command(name="create")
+    @create.command(name="channel")
     async def create_channel(self, ctx, name, role: Role = None):
         overwrites = {}
         if role:
