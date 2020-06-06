@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class WebsocketClient:
 
     def __init__(self, addr, port):
-        print(f"Websocket client for {addr}:{port}")
+        logger.info(f"Websocket client for {addr}:{port}")
         self.addr = addr
         self.port = port
         self.websocket = None
@@ -37,7 +37,7 @@ class WebsocketClient:
         #     raise Exception("Websocket still None after 5 attempts")
 
         message_id = message_id or str(uuid.uuid4())
-        print("Sending {} ({}):\n {}\n".format(method, message_id, data))
+        logger.info("Sending {} ({}):\n {}\n".format(method, message_id, data))
         msg = {
             "message_id": message_id,
             "method": method,
@@ -61,8 +61,10 @@ class WebsocketClient:
     async def listener(self):
         while True:
             try:
+                # @JK is it possible to let the bot catch this exception to handle
+                # when server goes down? (if thats even worthile anyway...)
                 response = await self.websocket.recv()
-                print("RESPONSE: {}\n".format(response))
+                logger.info("RESPONSE: {}\n".format(response))
                 resp = json.loads(response)
                 if resp['mode'] in ('resp', 'error'):
                     self.resps[resp['message_id']] = resp
