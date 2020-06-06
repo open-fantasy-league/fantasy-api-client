@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 import uuid
 
 from clients.fantasy_websocket_client import FantasyWebsocketClient
@@ -10,6 +11,9 @@ import dotenv
 from data.dota_ids import FANTASY_LEAGUE_ID
 from messages.fantasy_msgs import PeriodUpdate, SubLeague
 from utils.constants import DATE_FMT
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 dotenv.load_dotenv()
 ADDRESS = os.getenv('ADDRESS', '0.0.0.0')
