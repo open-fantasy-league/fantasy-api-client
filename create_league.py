@@ -36,11 +36,11 @@ async def create_league(
     end_time = datetime.datetime(2020, 6, 10, tzinfo=datetime.timezone.utc)
     await leaderboard_client.send_insert_leaderboard([
         Leaderboard(
-            FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, "ESL Birmingham Player Points",
+            FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, f"{name} Player Points",
             (start_time.strftime(DATE_FMT), end_time.strftime(DATE_FMT))
         ),
         Leaderboard(
-            FANTASY_USER_LEADERBOARD_ID, FANTASY_LEAGUE_ID,  "ESL Birmingham User Points",
+            FANTASY_USER_LEADERBOARD_ID, FANTASY_LEAGUE_ID,  f"{name} User Points",
             (start_time.strftime(DATE_FMT), end_time.strftime(DATE_FMT))
         ),
     ])
