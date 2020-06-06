@@ -9,6 +9,9 @@ from messages.fantasy_msgs import DraftQueue
 from utils.utils import simplified_str
 from discord_bot.listener import PlayerHandler, FantasyHandler
 
+import logging
+logger = logging.getLogger(__name__)
+
 # TODO @ThePianoDentist
 RULES = '```lists how many players per team/per position```'
 SCORING = '```ie 3 points assist, 4 points kill```'
@@ -22,13 +25,13 @@ class FantasyDota(commands.Cog):
         self.fantasy_handler = FantasyHandler()
 
     async def start(self):
-        print("in start")
+        logger.info("in start")
         await asyncio.gather(self.player_handler.start(), self.fantasy_handler.start())
         return 42
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f'{self.bot.user} has logged in!')
+        print(f'FantasyDota cog read')
 
     # show we allow the public commands to also be called form dms?
 
@@ -97,13 +100,11 @@ class FantasyDota(commands.Cog):
         # I now think space-separated is fine (was imaging sometimes pros had spaces in their names, but
         # a) they actually dont when checking wiki. b) even if they do can just say "dont use spaces")
         if len(args) > 0:
-            print(args)
             player_names = ["puppey", "derek", "fng"]
             try:
                 player_ids = [self.player_handler.simplified_player_names_to_id[simplified_str(n)] for n in player_names]
             except KeyError as e:
                 # TOMAYBEDO return full player-typed name, not simplified.
-                print(e)
                 return await ctx.send(
                     f'Invalid player: {e}. !players to see available picks. '
                     f'I.e. order! puppey fng zai micke'

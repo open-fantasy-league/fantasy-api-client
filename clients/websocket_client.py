@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections import defaultdict
 from pprint import pprint
 
@@ -8,6 +9,8 @@ import uuid
 
 from utils.errors import ApiException
 from utils.utils import Encoder
+
+logger = logging.getLogger(__name__)
 
 
 class WebsocketClient:
@@ -21,9 +24,11 @@ class WebsocketClient:
         self.resps = defaultdict(dict)
         self.resp_events = {}
         self.sub_events = asyncio.Queue()
+        self.initialized = asyncio.Event()
 
     async def send(self, method, data, message_id=None):
-        # Could use an 'event' or something to handle this better
+        #await self.initialized.wait()
+        #Could use an 'event' or something to handle this better
         for i in range(5):
             if self.websocket is not None:
                 break
@@ -67,5 +72,7 @@ class WebsocketClient:
 
     async def run(self):
         async with websockets.connect('ws://{}:{}/echo'.format(self.addr, self.port)) as websocket:
+            logger.info('Websocket connected ws://{}:{}/echo'.format(self.addr, self.port))
             self.websocket = websocket
+            self.initialized.set()
             await self.listener()
