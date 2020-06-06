@@ -32,7 +32,7 @@ class ResultWebsocketClient(WebsocketClient):
         return await self.send_and_get_resp("TeamSeriesResult", data)
 
     async def send_insert_team_match_results(self, data: List[TeamMatchResult]):
-        return await self.send_and_get_resp("TeamSeriesResult", data)
+        return await self.send_and_get_resp("TeamMatchResult", data)
 
     async def send_insert_player_results(self, data: List[PlayerResult]):
         return await self.send_and_get_resp("PlayerResult", data)

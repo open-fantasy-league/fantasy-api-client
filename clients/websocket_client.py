@@ -60,15 +60,19 @@ class WebsocketClient:
 
     async def listener(self):
         while True:
-            response = await self.websocket.recv()
-            print("RESPONSE: {}\n".format(response))
-            resp = json.loads(response)
-            if resp['mode'] in ('resp', 'error'):
-                self.resps[resp['message_id']] = resp
-                self.resp_events[resp['message_id']].set()
-            elif resp['mode'] == 'push':
-                await self.sub_events.put(resp)
-            await asyncio.sleep(0)
+            try:
+                response = await self.websocket.recv()
+                print("RESPONSE: {}\n".format(response))
+                resp = json.loads(response)
+                if resp['mode'] in ('resp', 'error'):
+                    self.resps[resp['message_id']] = resp
+                    self.resp_events[resp['message_id']].set()
+                elif resp['mode'] == 'push':
+                    await self.sub_events.put(resp)
+                await asyncio.sleep(0)
+            except Exception:
+                logger.exception("Error in websocket listener")
+                raise
 
     async def run(self):
         async with websockets.connect('ws://{}:{}/echo'.format(self.addr, self.port)) as websocket:
@@ -76,3 +80,4 @@ class WebsocketClient:
             self.websocket = websocket
             self.initialized.set()
             await self.listener()
+        logger.info('Disconnected websocket ws://{}:{}/echo'.format(self.addr, self.port))
