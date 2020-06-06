@@ -74,9 +74,9 @@ class FantasyHandler:
             new_msg = self.client.sub_events.get()
             print(f"Draft listener received new msg: {new_msg}")
             if new_msg["message_type"] == "draft":
-                new_draft_callback(new_msg) # think these need to be awaited
+                await new_draft_callback(new_msg)
             elif new_msg["message_type"] == "pick":
-                new_pick_callback(new_msg)
+                await new_pick_callback(new_msg)
 
 
 # TODO For now it's ok to just do a `send_get_latest_leaderboards` on every !leaderboard command,
