@@ -1,10 +1,11 @@
 """
-Fantasy Dota cog
+Dev cog
 """
 
 from random import randint
 
 from discord import Color, TextChannel, Role, Member, PermissionOverwrite
+from discord.utils import get as dget # LUL
 from discord.ext import commands
 
 
@@ -25,8 +26,7 @@ class Dev(commands.Cog):
             await ctx.send("Create what?")
 
     @create.command()
-    async def channel(ctx, name, role: Role = None):
-        # @TODO private channel/permissions stuff
+    async def channel(self, ctx, name, role: Role = None):
         overwrites = {}
         if role:
             overwrites = {
@@ -37,7 +37,23 @@ class Dev(commands.Cog):
         await ctx.send(f'Created new channel - {new_channel.name}')
 
     @create.command()
-    async def role(ctx, name):
+    async def private_channel(self, ctx, name, *members):
+        if len(members) == 0:
+            await ctx.send("Please gimmie some members")
+            return
+        overwrites = {ctx.guild.default_role: PermissionOverwrite(read_messages=False)}
+        for m in members: # who even likes comprehensions?
+            member = dget(ctx.guild.members, name=m)
+            if member:
+                overwrites[member] = PermissionOverwrite(read_messages=True)
+        if len(overwrites) == 0:
+            await ctx.send("You didnt give me any valid members")
+            return
+        new_channel = await ctx.guild.create_text_channel(name, overwrites=overwrites)
+        await ctx.send(f'Created new channel - {new_channel.name} some people who shall not be named because i cant be arse to implement it')
+
+    @create.command()
+    async def role(self, ctx, name):
         random_color = Color.from_rgb(randint(0, 255), randint(0, 255), randint(0, 255))
         new_role = await ctx.guild.create_role(name=name, color=random_color)
         if new_role:
@@ -54,7 +70,7 @@ class Dev(commands.Cog):
     # sometimes dont...
 
     @delete.command()
-    async def channel(self, ctx, *, channel: TextChannel):
+    async def dchannel(self, ctx, *, channel: TextChannel):
         if channel:
             deleted_name = channel.name
             await channel.delete()
@@ -63,7 +79,7 @@ class Dev(commands.Cog):
             await ctx.send(f'No channel found')
 
     @delete.command()
-    async def role(ctx, *, role: Role):
+    async def drole(self, ctx, *, role: Role):
         if role:
             deleted_name = role.name
             await role.delete()
@@ -77,7 +93,7 @@ class Dev(commands.Cog):
             await ctx.send("Add what?")
 
     @add.command()
-    async def role(self, ctx, member: Member, role: Role):
+    async def arole(self, ctx, member: Member, role: Role):
         if member and role:
             await member.add_roles(role)
             await ctx.send(f'{member} added to {role}')
@@ -90,7 +106,7 @@ class Dev(commands.Cog):
             await ctx.send("Remove what?")
 
     @remove.command()
-    async def role(self, ctx, member: Member, role: Role):
+    async def rrole(self, ctx, member: Member, role: Role):
         if member and role:
             await member.remove_roles(role)
             await ctx.send(f'{member} removed from {role}')
@@ -102,6 +118,14 @@ class Dev(commands.Cog):
         if member:
             await member.send(message)
             await ctx.send(f'Private message sent to {member.name}')
+
+    @commands.command()
+    async def channel_id(self, ctx, channel: TextChannel = None):
+        if channel:
+            await ctx.send(f'channel {channel.name} has id {channel.id}')
+        else:
+            await ctx.send(f'this channels id is {ctx.channel.id}')
+
 
 
 def setup(bot):
