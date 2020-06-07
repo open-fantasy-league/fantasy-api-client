@@ -10,7 +10,8 @@ from discord.ext import commands
 from discord.utils import get as dget # This cant go wrong surely
 
 
-from messages.fantasy_msgs import DraftQueue, ExternalUser, FantasyTeam
+from messages.fantasy_msgs import DraftQueue, ExternalUser, FantasyTeam, DraftPick
+from utils.errors import ApiException
 from utils.utils import simplified_str
 from data.dota_ids import FANTASY_LEAGUE_ID # TODO real fantasy id
 
@@ -189,10 +190,19 @@ class FantasyDota(commands.Cog):
 
     @draft.command()
     @commands.guild_only() # TODO make usable in draft channel. maybe make only visible their too?
-    async def pick(self, ctx, hero):
+    async def pick(self, ctx, player):
         """Make your pick"""
         # TODO
-        await ctx.send(f'{ctx.author.name} picked {hero}')
+        try:
+            player_id = self.player_handler.simplified_player_names_to_id[simplified_str(player)]
+        except KeyError:
+            return await ctx.send(f'Invalid pick {player}. `!draft players` to see available picks')
+        # TODO assumes team-name == user name
+        fantasy_user_id = self.fantasy_handler.discord_user_id_to_fantasy_id[ctx.author.name]
+        fantasy_team_id = self.fantasy_handler.fantasy_user_id_to_team_id[fantasy_user_id]
+        draft_id = None
+        await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
+        await ctx.send(f'{ctx.author.name} picked {player}')
 
     @draft.command()
     @commands.dm_only()
@@ -210,7 +220,7 @@ class FantasyDota(commands.Cog):
             except KeyError as e:
                 # TOMAYBEDO return full player-typed name, not simplified.
                 return await ctx.send(
-                    f'Invalid player: {e}. `!draft players` to see available picks. '
+                    f'Invalid player: {e}. !draft players to see available picks. '
                     f'I.e. `!draft order puppey fng zai micke`'
                 )
             discord_id = ctx.author.id
@@ -221,11 +231,9 @@ class FantasyDota(commands.Cog):
                 return await ctx.send(
                     'You are not currently registered to this league. Please type join! in main channel'
                 )
-            resp = await self.fantasy_handler.client.send_insert_draft_queues([draft_queue])
-            if resp["mode"] == "resp":  # i.e. not mode: "error"
-                await ctx.send(f'{ctx.author.name} has set their order as: {", ".join(args)}')
-            else:
-                print(resp)
+            try:
+                resp = await self.fantasy_handler.client.send_insert_draft_queues([draft_queue])
+            except ApiException:
                 await ctx.send(f'Something went horribly wrong. Please DM a mod to investigate')
         else:
             await ctx.send(f'Provide a space separated list. I.e. Ex. order! puppey fng zai micke')

@@ -56,6 +56,7 @@ class WebsocketClient:
         await resp_event.wait()
         resp = self.resps[message_id]
         if resp["mode"] == "error":
+            logger.error(resp)
             raise ApiException(resp)
         return self.resps[message_id]
 
