@@ -134,7 +134,7 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
                     try:
                         user_points_dict[user]["points"] += player_result["points"]
                     except KeyError:
-                        new_user = {"player_id": fantasy_player_id, "points": player_result["points"]}
+                        new_user = {"player_id": user, "points": player_result["points"]}
                         user_points_dict[user] = new_user
 
             try:
@@ -157,10 +157,10 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
         await result_client.send_insert_player_results(player_results)
         # The way we update users/player points means this func shouldnt ever be run concurrently/parallelised across diff matches
         await leaderboard_client.send_insert_stat(
-            [Stat(user["leaderboard_id"], user["player_id"], "points", now, user["points"]) for user in user_points_dict.values()]
+            [Stat(user["leaderboard_id"], user["player_id"], now, user["points"]) for user in user_points_dict.values()]
         )
         await leaderboard_client.send_insert_stat(
-            [Stat(x["leaderboard_id"], x["player_id"], "points", now, x["points"]) for x in
+            [Stat(x["leaderboard_id"], x["player_id"], now, x["points"]) for x in
              player_points_dict.values()]
         )
 

@@ -9,6 +9,7 @@ from typing import List
 from clients.fantasy_websocket_client import FantasyWebsocketClient
 from clients.leaderboard_websocket_client import LeaderboardWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
+from fake_leaderboards import add_fake_leaderboards
 from fake_users import add_fake_users
 from messages.fantasy_msgs import League, StatMultiplier, Period, ValidPlayer, MaxPlayersPerPosition
 from messages.leaderboard_msgs import Leaderboard
@@ -24,12 +25,14 @@ import dotenv
 dotenv.load_dotenv()
 ADDRESS = os.getenv('ADDRESS', '0.0.0.0')
 
+
 async def create_league(
         league_id: int, name: str,
         period_starts: List[datetime.datetime],
         draft_start_before_period: datetime.timedelta = datetime.timedelta(hours=1),
         draft_lockdown_before_period: datetime.timedelta = datetime.timedelta(hours=3),
-        fake_users: bool =False
+        fake_users: bool =False,
+        fake_leaderboards: bool=False,
 ):
     result_client = ResultWebsocketClient(ADDRESS, 3001)
     asyncio.create_task(result_client.run())
@@ -40,7 +43,7 @@ async def create_league(
 
     start_time = datetime.datetime(2020, 5, 10, tzinfo=datetime.timezone.utc)
     end_time = datetime.datetime(2020, 6, 10, tzinfo=datetime.timezone.utc)
-    await leaderboard_client.send_insert_leaderboard([
+    await leaderboard_client.send_insert_leaderboards([
         Leaderboard(
             FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, f"{name} Player Points",
             (start_time.strftime(DATE_FMT), end_time.strftime(DATE_FMT))
@@ -59,7 +62,9 @@ async def create_league(
     ])
 
     if fake_users:
-        await add_fake_users(fantasy_client)
+        users = await add_fake_users(fantasy_client)
+        if fake_leaderboards:
+            await add_fake_leaderboards([u.external_user_id for u in users], leaderboard_client)
 
     await fantasy_client.send_insert_stat_multipliers([
         StatMultiplier('kills', 0.3, league_id=FANTASY_LEAGUE_ID),
@@ -148,5 +153,6 @@ if __name__ == "__main__":
         11979, 'Blast Bounty Hunt',
         period_starts, draft_lockdown_before_period=datetime.timedelta(hours=3),
         #period_starts, draft_lockdown_before_period=datetime.timedelta(hours=9001),
-        draft_start_before_period=datetime.timedelta(hours=1), fake_users=True
+        draft_start_before_period=datetime.timedelta(hours=1), fake_users=True,
+        fake_leaderboards=True
     ))

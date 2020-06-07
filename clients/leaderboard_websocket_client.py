@@ -13,14 +13,14 @@ class LeaderboardWebsocketClient(WebsocketClient):
     async def send_sub_leagues(self, data: SubLeague):
         return await self.send_and_get_resp("SubLeague", data)
 
-    async def send_insert_leaderboard(self, data: List[Leaderboard]):
+    async def send_insert_leaderboards(self, data: List[Leaderboard]):
         return await self.send_and_get_resp("Leaderboard", data)
 
     # async def send_update_competitions(self, data: List[Leaderboard]):
     #     # Really the timespan, meta etc are optional and can be left out to not update
     #     return await self.send_and_get_resp("Leaderboard", data)
 
-    async def send_insert_stat(self, data: List[Stat]):
+    async def send_insert_stats(self, data: List[Stat]):
         return await self.send_and_get_resp("Stat", data)
 
     async def send_get_latest_leaderboards(self, data: List[uuid.UUID]):

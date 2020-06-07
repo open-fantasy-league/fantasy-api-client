@@ -27,6 +27,7 @@ async def add_fake_users(fantasy_client=None):
     await fantasy_client.send_insert_users(users)
     await fantasy_client.send_insert_fantasy_teams(teams)
     await fantasy_client.send_insert_draft_queues(draft_queues)
+    return users
 
 
 if __name__ == "__main__":

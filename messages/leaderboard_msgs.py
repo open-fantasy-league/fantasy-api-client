@@ -31,7 +31,6 @@ class SubLeaderboard:
 class Stat:
     leaderboard_id: uuid.UUID
     player_id: uuid.UUID
-    name: str
     timestamp: str
     points: float
     meta: dict = field(default_factory=dict)
