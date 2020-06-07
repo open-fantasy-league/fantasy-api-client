@@ -29,11 +29,13 @@ class FantasyBot(commands.Bot):
         self.player_handler = None
         self.fantasy_handler = None
         # Be careful users is a member of Bot
-        self.external_users = None #  set of discord ids for now
+        self.external_users = None  # not used atm
         super().__init__(*args, **kwargs)
 
     async def on_ready(self):
         logger.info(f'fantasy bot on ready entered')
+        # TOMAYBEDO now that connect clients also sets up listeners think we need to 
+        # do something to prevent user commands while bot is setting up
         await self.connect_clients() #  this stays "connected" should mb handle differently
         logger.info(f'fantasy bot on ready leaving - never called')
 
@@ -52,11 +54,14 @@ class FantasyBot(commands.Bot):
     def on_init_users(self, users):
         """Callback to initialize discord bot record of current external_users
         
-        users are object of form: {
+        Not used atm!
+
+        We get a list of users, objects of form: {
             'external_user_id': 'a9ba45b5-cbad-43f3-8dc9-b57188974007',
             'meta': {'discord_id': 143464912868474880},
             'name': 'ctpeepee#1273'
         }
+        NB: in listener ignored some of the resp data to just give list of users
         """
         logger.info("fantasy bot on init users")
         # because using set here. if the database already has duplicated users could
@@ -72,6 +77,27 @@ class FantasyBot(commands.Bot):
         logger.info("fantasy bot on update users")
 
     def on_init_draft(self, drafts):
+        """Callback to init draft interal state
+
+        For when bot crashes/restarts. Set up internal state of drafts/picks so 
+        that users can query when their next pick is scheduled, who the next
+        pickers are, players left, etc
+
+        We get a list of drafts: {
+        'draft_id': 'eb824c78-164b-4973-bfac-b283f6e0705f',
+        'league_id': 'b3c223bf-0409-4b54-88c7-bbb937c8111c',
+        'meta': {},
+        'period_id': '4b86d0e3-b6f6-482f-ae3f-5f6caa2afdc2',
+        'team_drafts': [{
+            'active_picks': [],
+            'draft_choices': [],
+            'external_user_id': '92de6fac-7df2-49ba-92d7-fff27f5b4d75',
+            'fantasy_team_id': '5a4adfa5-2600-4236-9180-103f39435d90',
+            'meta': {'discord_id': 143464912868474880},                   'name': 'ctpeepee#1273_team',
+            'team_draft_id': '3dbc3d01-b11e-4a58-847a-30a191070523'
+            }, ...]
+        }
+        """
         logger.info("fantasy bot on init draft")
 
     def on_new_draft(self, draft):

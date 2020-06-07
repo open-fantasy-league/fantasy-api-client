@@ -95,9 +95,9 @@ class FantasyDota(commands.Cog):
         @IMPROVE
         - better api call to check user exists rather than keeping state
         """
-        new_username = f'{ctx.author.name}#{ctx.author.discriminator}' # do we want to use discriminator?
-        new_user_id = ctx.author.id # should this be string?
-        if new_user_id in self.bot.external_users:
+        new_username = f'{ctx.author.name}#{ctx.author.discriminator}'  # do we want to use discriminator?
+        new_user_id = ctx.author.id  # should this be string?
+        if new_user_id in self.fantasy_handler.discord_user_id_to_fantasy_id:
             logger.warning(f'existing user {ctx.author.name} tried to join league')
             await ctx.send(f"Hey {ctx.author.name}, you're already in this league. Ya chump")
             return
@@ -105,11 +105,11 @@ class FantasyDota(commands.Cog):
         team = FantasyTeam(
             uuid.uuid4(), user.external_user_id, FANTASY_LEAGUE_ID,
             f'{new_username}_team', meta={'discord_id': new_user_id}
-        ) # very pep 8...
+        ) 
         resp = await self.fantasy_handler.client.send_insert_users([user])
         # check we were succesful
         if resp["mode"] == "resp":
-            self.bot.external_users.add(new_user_id) #  update internal state @WEAK
+            self.fantasy_handler.discord_user_id_to_fantasy_id[new_user_id] = user.external_user_id  # update internal state @WEAK
             await self.fantasy_handler.client.send_insert_fantasy_teams([team])
             await ctx.send(f'Congratulations {ctx.author.name} you have succesfully joined the league!')
         else:
@@ -155,8 +155,8 @@ class FantasyDota(commands.Cog):
             except KeyError as e:
                 # TOMAYBEDO return full player-typed name, not simplified.
                 return await ctx.send(
-                    f'Invalid player: {e}. !players to see available picks. '
-                    f'I.e. order! puppey fng zai micke'
+                    f'Invalid player: {e}. `!draft players` to see available picks. '
+                    f'I.e. `!draft order puppey fng zai micke`'
                 )
             discord_id = ctx.author.id
             try:

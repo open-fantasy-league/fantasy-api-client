@@ -86,3 +86,8 @@ cool if bot creats read only channel(s) for them with the info
   - ~~receive pm~~ dont need to "recieve" pms so to speak. can use checks
   to decide which commands work in pms or in guild
 - [format](https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py) default help message? 
+
+### TOMAYBEDO
+
+- Use nicks. Atm bot always uses `author.name` but if people have nick set might be confusing.
+`author.nick` unforunately doesnt default to `name`, reutrns `None` if not set so cbf to deal with now.
