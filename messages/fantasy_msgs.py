@@ -127,13 +127,25 @@ class DraftQueue:
 @dataclass
 class Pick:
     """
+    WARNING! You prob want to use draft_pick instead
     A pick in the squad for timespan T. May or may not be in the team, needs an ActivePick entry to be in team.
+    (currently ive hacked server so inserting pick will isnert active-pick)
     """
     pick_id: uuid.UUID
     player_id: uuid.UUID
     timespan: Tuple[str, str]
     fantasy_team_id: Optional[uuid.UUID] = None
     draft_choice_id: Optional[uuid.UUID] = None
+
+
+@dataclass
+class DraftPick:
+    """
+    Use this over Pick, for when user makes a pick. Pick is more for non-drafty scenarios
+    """
+    player_id: uuid.UUID
+    fantasy_team_id: uuid.UUID
+    draft_id: uuid.UUID  # So that it knows what timespan the pick should be valid for.
 
 
 @dataclass
