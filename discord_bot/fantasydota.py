@@ -185,7 +185,7 @@ class FantasyDota(commands.Cog):
         try:
             player_id = self.player_handler.simplified_player_names_to_id[simplified_str(player)]
         except KeyError:
-            return await ctx.send(f'Invalid pick {player}. `!draft players` to see available picks')
+            return await ctx.send(f'Invalid pick {player}. `!players ` to see available picks')
         fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id).fantasy_team_id
         draft_id = None
         await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
@@ -207,7 +207,7 @@ class FantasyDota(commands.Cog):
             except KeyError as e:
                 # TOMAYBEDO return full player-typed name, not simplified.
                 return await ctx.send(
-                    f'Invalid player: {e}. !draft players to see available picks. '
+                    f'Invalid player: {e}. `!players` to see available picks. '
                     f'I.e. `!draft order puppey fng zai micke`'
                 )
             discord_id = ctx.author.id

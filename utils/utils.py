@@ -45,5 +45,15 @@ class Encoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+# to avoid confusing o/0 e/3 misintepretations
+PRO_OVERRIDES = {
+    'w33': 'wee',
+    'n0tail': 'notail',
+    'yapz0r': 'yapzor'
+}
+
+
 def simplified_str(name):
-    return ''.join((c.lower()) for c in name if c.isalnum())
+    simplified = ''.join((c.lower()) for c in name if c.isalnum())
+    return PRO_OVERRIDES.get(simplified, simplified)
+
