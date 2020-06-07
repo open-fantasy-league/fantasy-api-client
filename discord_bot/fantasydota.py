@@ -171,7 +171,8 @@ class FantasyDota(commands.Cog):
         players = self.player_handler.players
         printy = ""
         for team in self.player_handler.teams_and_players:
-            printy += f'"{team["names"][0]["name"]}": {",".join(p["player"]["names"][0]["name"] for p in team["players"])}\n\n'
+            print(team)
+            printy += f'"{team["names"][0]["name"]}":  {", ".join(p["player"]["names"][0]["name"] for p in team["players"])}\n\n'
         await ctx.send(printy)
 
     @commands.group()
