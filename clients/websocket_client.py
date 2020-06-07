@@ -83,7 +83,7 @@ class WebsocketClient:
                 raise
 
     async def run(self):
-        async with websockets.connect('ws://{}:{}/echo'.format(self.addr, self.port)) as websocket:
+        async with websockets.connect('ws://{}:{}/echo'.format(self.addr, self.port), ping_interval=60) as websocket:
             logger.info('Websocket connected ws://{}:{}/echo'.format(self.addr, self.port))
             self.websocket = websocket
             self.initialized.set()

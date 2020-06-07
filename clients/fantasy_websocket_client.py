@@ -37,6 +37,9 @@ class FantasyWebsocketClient(WebsocketClient):
     async def send_insert_fantasy_teams(self, data: List[FantasyTeam]):
         return await self.send_and_get_resp("FantasyTeam", data)
 
+    async def send_update_drafts(self, data: List[DraftUpdate]):
+        return await self.send_and_get_resp("DraftUpdate", data)
+
     async def send_insert_draft_queues(self, data: List[DraftQueue]):
         return await self.send_and_get_resp("DraftQueue", data)
 

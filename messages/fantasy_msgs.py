@@ -192,6 +192,12 @@ class Draft:
 
 
 @dataclass
+class DraftUpdate:
+    draft_id: uuid.UUID
+    meta: dict = field(default_factory=dict)
+
+
+@dataclass
 class ValidPlayer:
     player_id: uuid.UUID
     period_id: uuid.UUID

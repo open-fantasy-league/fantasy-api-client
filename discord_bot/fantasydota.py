@@ -164,6 +164,16 @@ class FantasyDota(commands.Cog):
         ) 
         await self.fantasy_handler.add_user(ctx, user, team, new_user_id)
 
+    @commands.command()
+    async def players(self, ctx):
+        """Print out players to pick from
+        """
+        players = self.player_handler.players
+        printy = ""
+        for team in self.player_handler.teams_and_players:
+            printy += f'"{team["names"][0]["name"]}": {",".join(p["player"]["names"][0]["name"] for p in team["players"])}\n\n'
+        await ctx.send(printy)
+
     @commands.group()
     async def draft(self, ctx):
         """Commands to use while in a draft"""

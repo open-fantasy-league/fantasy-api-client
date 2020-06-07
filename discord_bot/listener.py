@@ -96,6 +96,8 @@ class LeaderboardHandler:
                 update_leaderboard_callback(updated_leaderboards)
             else:
                 logger.error(f'LeaderboardHandler:listener: Unexpected message type: {new_msg["message_type"]}')
+
+
 class PlayerHandler:
 
     def __init__(self):
