@@ -5,8 +5,9 @@ from pprint import pformat
 
 from clients.fantasy_websocket_client import FantasyWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
-from messages.fantasy_msgs import SubDraft, SubUser
+from messages.fantasy_msgs import SubDraft, SubUser, SubLeague
 from messages.result_msgs import SubTeam
+from utils.errors import ApiException
 from utils.utils import simplified_str
 from utils.constants import TRUNCATED_MESSAGE_LENGTH
 
@@ -44,6 +45,8 @@ class FantasyHandler:
         self.client = FantasyWebsocketClient(os.getenv('ADDRESS', '0.0.0.0'))
         self.users = None
         self.discord_user_id_to_fantasy_id = None
+        self.league = None
+        self.user_id_to_team_id = None
 
     async def start(self):
         """
@@ -60,7 +63,25 @@ class FantasyHandler:
         logger.info(f"FantasyHandler received {len(self.users)} users")
         logger.debug(f'FantasyHandler users received: {pformat(self.users)}')
         self.discord_user_id_to_fantasy_id = {u["meta"]["discord_id"]: u["external_user_id"] for u in self.users}
+        self.league = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"][0]
+        self.user_id_to_team_id = {t["external_user_id"]: t["fantasy_team_id"] for t in self.league["fantasy_teams"]}
         logger.info("FantasyHandler Loaded")
+
+    def get_user_team(self, discord_id):
+        fantasy_user_id = self.discord_user_id_to_fantasy_id[discord_id]
+        return self.user_id_to_team_id[fantasy_user_id]
+
+    async def add_user(self, ctx, user, team, discord_id):
+        try:
+            await self.client.send_insert_users([user])
+            self.discord_user_id_to_fantasy_id[discord_id] = user.external_user_id  # update internal state @WEAK
+            self.user_id_to_team_id[user.external_user_id] = team.fantasy_team_id
+            await self.client.send_insert_fantasy_teams([team])
+            await ctx.send(f'Congratulations {ctx.author.name} you have succesfully joined the league!')
+        except ApiException:
+            logger.exception(f'join command incorrect response')
+            await ctx.send(f'Sorry {ctx.author.name} something went wrong, please try again or contact an admin')
+
 
     async def init_listener(self,
             init_draft_callback, new_draft_callback, new_pick_callback,
