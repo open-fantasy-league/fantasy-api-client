@@ -32,9 +32,12 @@ class Dev(commands.Cog):
     async def clear_channels(self, ctx):
         """Delete all channels"""
         for channel in ctx.guild.channels:
-            if channel.name not in ["ct-test", "jk-test"]:
+            if channel.name not in ["ct-test", "jk-test", "Testing"]:
                 await channel.delete()
-        await ctx.send("Finished cleaning. Bery nice.")
+        if ctx.channel in ctx.guild.channels: # even with this check we get 404 channel not foudn if called from channel we are deleting
+            await ctx.send("Finished cleaning. Bery nice.")
+
+    # TODO clear categroies?
     
     @clear.command(name="roles")
     async def clear_roles(self, ctx):
@@ -145,6 +148,9 @@ class Dev(commands.Cog):
     async def info(self, ctx):
         await ctx.send((ctx.author.name, ctx.author.discriminator, ctx.author.id))
 
+    # @commands.command()
+    # async def echo(self, ctx, *, s):
+    #     await ctx.send(s)
 
 
 

@@ -91,3 +91,4 @@ cool if bot creats read only channel(s) for them with the info
 
 - Use nicks. Atm bot always uses `author.name` but if people have nick set might be confusing.
 `author.nick` unforunately doesnt default to `name`, reutrns `None` if not set so cbf to deal with now.
+- properly seperate handler async from bot async - [this](https://github.com/Rapptz/discord.py/blob/master/examples/background_task.py) might be releavnt (or relavant for something else anyway)

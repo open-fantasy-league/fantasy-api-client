@@ -17,7 +17,7 @@ dotenv.load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 COMMAND_PREFIX = '!'
 # TODO @ThePianoDentist
-HELP = 'who to contact for more info,\n a sort of faq'
+HELP_COMMAND_TEXT = 'i help you help we help'
 
 if not BOT_TOKEN:
     print('No bot token found, check .env')
@@ -136,13 +136,14 @@ class FantasyBot(commands.Bot):
 
 
 bot = FantasyBot(command_prefix=COMMAND_PREFIX, case_insensitive=True,
-    description=HELP)
+    description=HELP_COMMAND_TEXT)
 
 # pre connect to discord stuff
 #asyncio.run(bot.connect_clients())
 
 @bot.command()
 async def reload(ctx):
+    # TODO call on_ready stuff so cogs get events like they bot had just started?
     bot.reload_extension('fantasydota')
     bot.reload_extension('dev')
 

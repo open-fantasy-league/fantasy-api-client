@@ -5,7 +5,10 @@ import logging
 import uuid
 from pprint import pformat
 
+from discord import PermissionOverwrite
 from discord.ext import commands
+from discord.utils import get as dget # This cant go wrong surely
+
 
 from messages.fantasy_msgs import DraftQueue, ExternalUser, FantasyTeam
 from utils.utils import simplified_str
@@ -15,8 +18,16 @@ from data.dota_ids import FANTASY_LEAGUE_ID # TODO real fantasy id
 logger = logging.getLogger(__name__)
 
 # TODO @ThePianoDentist
-RULES = '```lists how many players per team/per position```'
-SCORING = '```ie 3 points assist, 4 points kill```'
+CATEGORY_NAME = 'Fantasy Dota'
+HELP_TEXT = '`who` to contact for more info,\n a sort of faq\n```more stuff```'
+RULES_TEXT = '```lists how many players per team/per position```'
+SCORING_TEXT = '```ie 3 points assist, 4 points kill```'
+HELP_CHANNELS = {
+    'Help': HELP_TEXT,
+    'Rules': RULES_TEXT,
+    'Scoring': SCORING_TEXT
+}
+OTHER_CHANNELS = ['General']
 
 
 class FantasyDota(commands.Cog):
@@ -44,27 +55,67 @@ class FantasyDota(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        # TODO Do we need to worry about the below warning?
-        # Warning This function is not guaranteed to be the first event called.
-        # Likewise, this function is not guaranteed to only be called once.
-        # This library implements reconnection logic and thus will end up calling
-        # this event whenever a RESUME request fails.
-        logger.info("fantasy dota cog is ready to party")
+        """Initial discord related set up 
 
+        TODO:
+        - Do we need to worry about the below warning?
+            Warning This function is not guaranteed to be the first event called.
+            Likewise, this function is not guaranteed to only be called once.
+            This library implements reconnection logic and thus will end up calling
+            this event whenever a RESUME request fails.
+        """
+        logger.info("Cog: On Ready enter")
+        for guild in self.bot.guilds:
+            # TODO create method for this
+            logger.info(f"Cog: Checking required channels for {guild.name}")
+            category = dget(guild.categories, name=CATEGORY_NAME)
+            if category:
+                logger.info(f"Cog: Help category found")
+                # For now just assume if catgeory is there we're done
+            else:
+                logger.info(f'Cog: Category not found - creating')
+                overwrites = {
+                    guild.default_role: PermissionOverwrite(send_messages=False),
+                }
+                # TODO force category at top?
+                new_category = await guild.create_category(CATEGORY_NAME)
+                logger.info(f'Cog: New category created - adding and populating channels')
+                for name in HELP_CHANNELS:
+                    new_channel = await guild.create_text_channel(name, category=new_category,
+                                                                  overwrites=overwrites)
+                    await new_channel.send(HELP_CHANNELS[name])
+                logger.info(f'Cog: All help channels added and populated succsfully')
+                for name in OTHER_CHANNELS:
+                    await guild.create_text_channel(name, category=new_category)
+                logger.info(f"Cog: All other channels created")
 
+            
+        logger.info("Cog On Ready leave")
 
-    # show we allow the public commands to also be called form dms?
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild):
+        """Handle joining a guild
 
-    # maybe group rules/scoring by eg info - `info scoring/rules`
+        Does nothing atm but will want to run the same kind of create channels init
+        set up we run on all guilds in on ready probs
+        """
+        
+
+    # TODO show we allow the public commands to also be called form dms?
+    # TODO maybe group rules/scoring by eg info - `info scoring/rules`
+    # TODO if get fancy, make a custom check for whether the rules/scoring/help
+    # commands are useable. for now only owner can use
     @commands.command()
+    @commands.is_owner()
     async def rules(self, ctx):
         """List the rules"""
-        await ctx.send(RULES)
+        await ctx.send(RULES_TEXT)
 
     @commands.command()
+    @commands.is_owner()
     async def scoring(self, ctx):
         """List the scoring system"""
-        await ctx.send(SCORING)
+        await ctx.send(SCORING_TEXT)
 
     @commands.group()
     async def show(self, ctx):
@@ -117,8 +168,6 @@ class FantasyDota(commands.Cog):
             logger.error(f'join command incorrect response')
             await ctx.send(f'Sorry {ctx.author.name} something went wrong, please try again or contact an admin')
 
-
-    
     @commands.group()
     async def draft(self, ctx):
         """Commands to use while in a draft"""
