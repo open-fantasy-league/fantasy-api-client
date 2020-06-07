@@ -7,9 +7,11 @@ from clients.result_websocket_client import ResultWebsocketClient
 from messages.fantasy_msgs import SubDraft, SubUser
 from messages.result_msgs import SubTeam
 from utils.utils import simplified_str
+from utils.constants import TRUNCATED_MESSAGE_LENGTH
 
 
 logger = logging.getLogger(__name__)
+
 
 class PlayerHandler:
 
@@ -49,8 +51,15 @@ class FantasyHandler:
         self.discord_user_id_to_fantasy_id = {u["meta"]["discord_id"]: u["external_user_id"] for u in self.users}
         logger.info("Loaded FantasyHandler")
 
-    async def draft_listen(self, draft_init_callback, new_draft_callback, new_pick_callback):
+    async def init_listener(self,
+            init_draft_callback, new_draft_callback, new_pick_callback,
+            init_users_callback, update_users_callback
+        ):
         """
+        Converted to now listen to user updates too. Fine for now but pretty
+        unweildy. Probably better to split sub-events, and route the messages
+        into separate queues for each message-type
+
         Im imagining the discord bot calls and uses this.
         the discord bot would define callbacks for when a new draft set
         (i.e. make a channel for the draft)
@@ -73,15 +82,23 @@ class FantasyHandler:
             SubDraft(all=True)
         )
         drafts = drafts_resp["data"]
-        draft_init_callback(drafts)
+        init_draft_callback(drafts)
+        # subscribe to users
+        users_resp = await self.client.send_sub_users(
+            SubUser(toggle=True)
+        )
+        users = users_resp["data"]["users"] #  do we ever need the other "data"?
+        init_users_callback(users)
         while True:
-            new_msg = self.client.sub_events.get()
-            print(f"Draft listener received new msg: {new_msg}")
+            new_msg = await self.client.sub_events.get()
+            logger.info(f"Fantasy received new msg: {str(new_msg)[:TRUNCATED_MESSAGE_LENGTH]}")
+            logger.debug(f"Full message {new_msg}") #  TODO pprint?
             if new_msg["message_type"] == "draft":
-                await new_draft_callback(new_msg)
+                new_draft_callback(new_msg)
             elif new_msg["message_type"] == "pick":
-                await new_pick_callback(new_msg)
-
+                new_pick_callback(new_msg)
+            # elif new_msg["message_type"] == "user":
+            #     update_users_callback(new_msg)
 
 # TODO For now it's ok to just do a `send_get_latest_leaderboards` on every !leaderboard command,
 # However this could be cached by utilising listening to new stat-updates, to trigger a cached-leaderboard-clear.

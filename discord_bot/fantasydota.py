@@ -3,6 +3,7 @@ Fantasy Dota cog
 """
 import logging
 import uuid
+from pprint import pformat
 
 from discord.ext import commands
 
@@ -85,22 +86,38 @@ class FantasyDota(commands.Cog):
 
     @commands.command()
     async def join(self, ctx):
-        """Join the league!"""
-        # TODO:
-        # - check if already exist?
-        # - get proper fantasy id from somewhere
-        # - other error handling?
-        # - move this stuff into listener? or summit
-        username = f'{ctx.author.name}#{ctx.author.discriminator}' # do we want to use discriminator?
-        user_id = ctx.author.id # should this be string?
-        user = ExternalUser(uuid.uuid4(), username, meta={'discord_id': user_id})
+        """Join the league!
+        
+        TODO:
+        - get proper fantasy id from somewhere
+        - other error handling?
+        - move this stuff into listener? or somewhere more sensible
+        @IMPROVE
+        - better api call to check user exists rather than keeping state
+        """
+        new_username = f'{ctx.author.name}#{ctx.author.discriminator}' # do we want to use discriminator?
+        new_user_id = ctx.author.id # should this be string?
+        if new_user_id in self.bot.external_users:
+            logger.warning(f'existing user {ctx.author.name} tried to join league')
+            await ctx.send(f"Hey {ctx.author.name}, you're already in this league. Ya chump")
+            return
+        user = ExternalUser(uuid.uuid4(), new_username, meta={'discord_id': new_user_id})
         team = FantasyTeam(
             uuid.uuid4(), user.external_user_id, FANTASY_LEAGUE_ID,
-            f'{username}_team', meta={'discord_id': user_id}
+            f'{new_username}_team', meta={'discord_id': new_user_id}
         ) # very pep 8...
-        await self.fantasy_handler.client.send_insert_users([user])
-        await self.fantasy_handler.client.send_insert_fantasy_teams([team])
-        await ctx.send(f'Congratulations {ctx.author.name} you have succesfully joined the league!')
+        resp = await self.fantasy_handler.client.send_insert_users([user])
+        # check we were succesful
+        if resp["mode"] == "resp":
+            self.bot.external_users.add(new_user_id) #  update internal state @WEAK
+            await self.fantasy_handler.client.send_insert_fantasy_teams([team])
+            await ctx.send(f'Congratulations {ctx.author.name} you have succesfully joined the league!')
+        else:
+            # TODO if mode isnt resp does that mean database not been altered?
+            logger.error(f'join command incorrect response')
+            await ctx.send(f'Sorry {ctx.author.name} something went wrong, please try again or contact an admin')
+
+
     
     @commands.group()
     async def draft(self, ctx):

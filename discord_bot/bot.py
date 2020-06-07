@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from pprint import pformat
 
 import dotenv
 from discord.ext import commands
@@ -27,7 +28,14 @@ class FantasyBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         self.player_handler = None
         self.fantasy_handler = None
+        # Be careful users is a member of Bot
+        self.external_users = None #  set of discord ids for now
         super().__init__(*args, **kwargs)
+
+    async def on_ready(self):
+        logger.info(f'fantasy bot on ready entered')
+        await self.connect_clients() #  this stays "connected" should mb handle differently
+        logger.info(f'fantasy bot on ready leaving - never called')
 
     async def connect_clients(self):
         # Bot has a member start had to change name, not sure we are doign here to give good name...
@@ -35,11 +43,42 @@ class FantasyBot(commands.Bot):
         self.player_handler = PlayerHandler()
         self.fantasy_handler = FantasyHandler()
         await asyncio.gather(self.player_handler.start(), self.fantasy_handler.start())
+        await self.fantasy_handler.init_listener(
+            self.on_init_draft, self.on_new_draft, self.on_new_pick,
+            self.on_init_users, self.on_update_users
+        )
         return 42
 
-    async def on_ready(self):
-        logging.info(f'fantasy bot on ready entered')
-        await self.connect_clients()
+    def on_init_users(self, users):
+        """Callback to initialize discord bot record of current external_users
+        
+        users are object of form: {
+            'external_user_id': 'a9ba45b5-cbad-43f3-8dc9-b57188974007',
+            'meta': {'discord_id': 143464912868474880},
+            'name': 'ctpeepee#1273'
+        }
+        """
+        logger.info("fantasy bot on init users")
+        # because using set here. if the database already has duplicated users could
+        # get weird results where we get different version of user each time
+        self.external_users = set(user['meta']['discord_id'] for user in users)
+        logger.debug(f"fantasy bot on init users: {len(self.external_users)} users inited")
+
+    def on_update_users(self, users):
+        """Callback to update users
+
+        Not using for now, will update set of users from join command
+        """
+        logger.info("fantasy bot on update users")
+
+    def on_init_draft(self, drafts):
+        logger.info("fantasy bot on init draft")
+
+    def on_new_draft(self, draft):
+        logger.info("fantasy bot on new draft")
+
+    def on_new_pick(self, pick):
+        logger.info("fantasy bot on new draft")
 
     # @JK listeners youll want for logging
     # Context object docs - https://discordpy.readthedocs.io/en/latest/ext/commands/api.html#context
@@ -59,7 +98,7 @@ class FantasyBot(commands.Bot):
 
         This event is called regardless of whether the command itself succeeds via error or completes.
         """
-        # eg
+        # TODO add which cog, module or whatever stuff is called form. atm just says "main"
         logger.info(f'{ctx.author.name} called {ctx.command.qualified_name} with {ctx.args[2:]}')
 
     async def on_command_completion(self, ctx):
