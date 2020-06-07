@@ -46,6 +46,9 @@ class FantasyWebsocketClient(WebsocketClient):
     async def send_insert_picks(self, data: List[Pick]):
         return await self.send_and_get_resp("Pick", data)
 
+    async def send_insert_draft_pick(self, data: DraftPick):
+        return await self.send_and_get_resp("DraftPick", data)
+
     async def send_insert_active_picks(self, data: List[ActivePick]):
         return await self.send_and_get_resp("ActivePick", data)
 
