@@ -5,8 +5,10 @@ from pprint import pformat
 
 from clients.fantasy_websocket_client import FantasyWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
+from clients.leaderboard_websocket_client import LeaderboardWebsocketClient
 from messages.fantasy_msgs import SubDraft, SubUser
 from messages.result_msgs import SubTeam
+from messages.leaderboard_msgs import SubLeague
 from utils.utils import simplified_str
 from utils.constants import TRUNCATED_MESSAGE_LENGTH
 
@@ -14,6 +16,83 @@ from utils.constants import TRUNCATED_MESSAGE_LENGTH
 logger = logging.getLogger(__name__)
 
 
+class LeaderboardHandler:
+
+    def __init__(self):
+        self.client = LeaderboardWebsocketClient(os.getenv('ADDRESS', '0.0.0.0'))
+        self.leaderboards = None
+
+    async def start(self):
+        """
+        Start running client and run initial set up
+        """
+        logger.info('LeaderboardHandler starting')
+        asyncio.create_task(self.client.run())
+        logger.info("FantasyHandler Loaded")
+
+    async def init_listener(self, init_leaderboard_callback, update_leaderboard_callback):
+        """
+        Docstring
+
+        Resp of form:
+        {
+            'data': [{
+            'leaderboard_id': '0ce24e8c-cede-4c0a-9493-a1b5a3b6dee1',
+            'league_id': 'b3c223bf-0409-4b54-88c7-bbb937c8111c',
+            'meta': {},
+            'name': 'Blast Bounty Hunt Player Points',
+            'stats': [{
+                        'leaderboard_id': '0ce24e8c-cede-4c0a-9493-a1b5a3b6dee1',
+                        'meta': {},
+                        'player_id': 'bfece248-b37f-43aa-9a2b-99a839776afc',
+                        'points': 244.15099,
+                        'timestamp': '2020-06-07T20:13:47Z'
+                    }, ...]
+            }, ...],
+            'message_id': '3480e839-f6c5-427d-a014-83a8e1733af5',
+            'message_type': 'SubLeague',
+            'mode': 'resp'
+        }
+        """
+        logger.info("LeaderboardHandler:init_listener: send sub leagues")
+        leagues_resp = await self.client.send_sub_leagues(SubLeague(all=True))
+        if leagues_resp["mode"] != "resp":
+            logger.error("LeaderboardHandler:init_listener: invalid response")
+            return
+        self.leaderboards = leagues_resp["data"]
+        logger.info("LeaderboardHandler:init_listener: init leaderboard callback")
+        await init_leaderboard_callback(self.leaderboards)
+        # updates
+        logger.info("LeaderboardHandler:init_listener: start listening")
+
+
+        while True:
+            new_msg = await self.client.sub_events.get()
+            logger.info(f"LeaderboardHandler:listener: Received new msg: {str(new_msg)[:TRUNCATED_MESSAGE_LENGTH]}")
+            logger.debug(f"LeaderboardHandler:listener: Full message {pformat(new_msg)}")
+            # we shuold only get one type of message
+            #     pub struct ApiLeaderboardLatest {
+            #         pub leaderboard_id: Uuid,
+            #         pub league_id:      Uuid,
+            #         pub name:           String,
+            #         pub meta: serde_json::Value,
+            #         pub leaderboard: Vec<ApiLatestStat>,
+            #     }
+            #     pub struct ApiLatestStat {
+            #         #[sql_type = "sql_types::Uuid"]
+            #         pub player_id: Uuid,
+            #         #[sql_type = "sql_types::Uuid"]
+            #         pub leaderboard_id: Uuid,
+            #         #[sql_type = "sql_types::Double"]
+            #         pub points: f64,
+            #     }
+            if new_msg["message_type"] == "leaderboard_latest":
+                # TODO update self.leaderboards with what has changed
+                # TODO update callback only leaderboards that have changed
+                updated_leaderboards = self.leaderboards
+                update_leaderboard_callback(updated_leaderboards)
+            else:
+                logger.error(f'LeaderboardHandler:listener: Unexpected message type: {new_msg["message_type"]}')
 class PlayerHandler:
 
     def __init__(self):
@@ -109,7 +188,7 @@ class FantasyHandler:
             SubDraft(all=True)
         )
         drafts = drafts_resp["data"]
-        logger.error(pformat(drafts))
+        # logger.error(pformat(drafts))
 
         init_draft_callback(drafts)
         # ! Was already beign subbed to in start !

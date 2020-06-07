@@ -5,8 +5,10 @@ from pprint import pformat
 
 import dotenv
 from discord.ext import commands
+from discord.utils import get as dget # This cant go wrong surely
 
-from discord_bot.listener import PlayerHandler, FantasyHandler
+from data.dota_ids import FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, FANTASY_USER_LEADERBOARD_ID
+from discord_bot.listener import PlayerHandler, FantasyHandler, LeaderboardHandler
 
 
 logging.basicConfig(level=logging.INFO)
@@ -23,11 +25,16 @@ if not BOT_TOKEN:
     print('No bot token found, check .env')
     exit()
 
+
 class FantasyBot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
+        # handlers
         self.player_handler = None
         self.fantasy_handler = None
+        self.leaderboard_handler = None
+
+        # Internal state
         # Be careful users is a member of Bot
         self.external_users = None  # not used atm
         super().__init__(*args, **kwargs)
@@ -36,20 +43,60 @@ class FantasyBot(commands.Bot):
         logger.info(f'fantasy bot on ready entered')
         # TOMAYBEDO now that connect clients also sets up listeners think we need to 
         # do something to prevent user commands while bot is setting up
-        await self.connect_clients() #  this stays "connected" should mb handle differently
-        logger.info(f'fantasy bot on ready leaving - never called')
+        await self.connect_clients()
+        logger.info(f'fantasy bot on ready leaving')
 
     async def connect_clients(self):
         # Bot has a member start had to change name, not sure we are doign here to give good name...
-        logger.info("fantasy bot connect clients enter")
+        logger.info("FantasyBot: connect clients enter")
         self.player_handler = PlayerHandler()
         self.fantasy_handler = FantasyHandler()
-        await asyncio.gather(self.player_handler.start(), self.fantasy_handler.start())
-        await self.fantasy_handler.init_listener(
+        self.leaderboard_handler = LeaderboardHandler()
+        logger.info("FantasyBot:ConnectClients: starting handlers")
+        await asyncio.gather(self.player_handler.start(), self.fantasy_handler.start(),
+                             self.leaderboard_handler.start())
+        logger.info("FantasyBot:ConnectClients: init fantasy listener")
+        asyncio.create_task(self.fantasy_handler.init_listener(
             self.on_init_draft, self.on_new_draft, self.on_new_pick,
             self.on_init_users, self.on_update_users
-        )
-        return 42
+        ))
+        logger.info("FantasyBot:ConnectClients: init leaderboard listener")
+        asyncio.create_task(self.leaderboard_handler.init_listener(self.on_init_leaderboards,
+                                                     self.on_update_leaderboards))
+        logger.info("FantasyBot: connect clients exit")
+
+    async def on_init_leaderboards(self, leaderboards):
+        """Init our leaderboards
+
+        This should probably be in fantasydota cog seeing as that is where
+        discordy stuff like printing output is supposed to happen. It's
+        also where the leaderboard channels are created.
+        
+        OH YEAH... thought could have this here for now but channels wont even be
+        made yet...
+        """
+        logger.info("FantasyBot: on init leaderboards enter")
+        for guild in self.guilds:
+            new_leaderboard = new_pro_leaderboard = None
+            for leaderboard in leaderboards:
+                if leaderboard["league_id"] == FANTASY_LEAGUE_ID:
+                    if leaderboard["leaderboard_id"] == FANTASY_USER_LEADERBOARD_ID:
+                        new_leaderboard = leaderboard
+                    elif leaderboard["leaderboard_id"] == FANTASY_PLAYER_LEADERBOARD_ID:
+                        new_pro_leaderboard = leaderboard
+            if new_leaderboard is None or new_pro_leaderboard is None:
+                logger.error(f'FantasyBot:on_init_leaderboards: failed to find leaderboards')
+                return
+            leaderboard_channel = dget(guild.channels, name="leaderboard")
+            pro_leaderboard_channel = dget(guild.channels, name="pro-leaderboard")
+            if leaderboard_channel is None or pro_leaderboard_channel is None:
+                logger.error('FantasyBot:on_init_leaderboards: failed to find leaderboard channels')
+                return
+            await leaderboard_channel.send(new_leaderboard["name"])
+            await pro_leaderboard_channel.send(new_pro_leaderboard["name"])
+
+    def on_update_leaderboards(self, leaderboards):
+        logger.info("FantasyBot: on update leaderboards enter")
 
     def on_init_users(self, users):
         """Callback to initialize discord bot record of current external_users

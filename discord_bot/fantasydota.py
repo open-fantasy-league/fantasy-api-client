@@ -22,12 +22,14 @@ CATEGORY_NAME = 'Fantasy Dota'
 HELP_TEXT = '`who` to contact for more info,\n a sort of faq\n```more stuff```'
 RULES_TEXT = '```lists how many players per team/per position```'
 SCORING_TEXT = '```ie 3 points assist, 4 points kill```'
+# TODO @ct tidy this mess up...
 HELP_CHANNELS = {
     'Help': HELP_TEXT,
     'Rules': RULES_TEXT,
     'Scoring': SCORING_TEXT
 }
-OTHER_CHANNELS = ['General']
+PRIVATE_CHANNELS = ['Leaderboard', 'Pro Leaderboard']
+PUBLIC_CHANNELS = ['Chat']
 
 
 class FantasyDota(commands.Cog):
@@ -74,22 +76,26 @@ class FantasyDota(commands.Cog):
                 # For now just assume if catgeory is there we're done
             else:
                 logger.info(f'Cog: Category not found - creating')
+                # TODO force category at top?
                 overwrites = {
                     guild.default_role: PermissionOverwrite(send_messages=False),
                 }
-                # TODO force category at top?
-                new_category = await guild.create_category(CATEGORY_NAME)
+                new_category = await guild.create_category(CATEGORY_NAME, overwrites=overwrites)
                 logger.info(f'Cog: New category created - adding and populating channels')
                 for name in HELP_CHANNELS:
                     new_channel = await guild.create_text_channel(name, category=new_category,
                                                                   overwrites=overwrites)
                     await new_channel.send(HELP_CHANNELS[name])
                 logger.info(f'Cog: All help channels added and populated succsfully')
-                for name in OTHER_CHANNELS:
+                for name in PRIVATE_CHANNELS:
                     await guild.create_text_channel(name, category=new_category)
+                overwrites = {
+                    guild.default_role: PermissionOverwrite(send_messages=True),
+                }
+                for name in PUBLIC_CHANNELS:
+                    await guild.create_text_channel(name, category=new_category,
+                                                    overwrites=overwrites)
                 logger.info(f"Cog: All other channels created")
-
-            
         logger.info("Cog On Ready leave")
 
     @commands.Cog.listener()
