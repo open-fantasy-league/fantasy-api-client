@@ -10,7 +10,8 @@ from discord.ext import commands
 from discord.utils import get as dget # This cant go wrong surely
 
 
-from messages.fantasy_msgs import DraftQueue, ExternalUser, FantasyTeam
+from messages.fantasy_msgs import DraftQueue, ExternalUser, FantasyTeam, DraftPick
+from utils.errors import ApiException
 from utils.utils import simplified_str
 from data.dota_ids import FANTASY_LEAGUE_ID # TODO real fantasy id
 
@@ -215,11 +216,9 @@ class FantasyDota(commands.Cog):
                 return await ctx.send(
                     'You are not currently registered to this league. Please type join! in main channel'
                 )
-            resp = await self.fantasy_handler.client.send_insert_draft_queues([draft_queue])
-            if resp["mode"] == "resp":  # i.e. not mode: "error"
-                await ctx.send(f'{ctx.author.name} has set their order as: {", ".join(args)}')
-            else:
-                print(resp)
+            try:
+                resp = await self.fantasy_handler.client.send_insert_draft_queues([draft_queue])
+            except ApiException:
                 await ctx.send(f'Something went horribly wrong. Please DM a mod to investigate')
         else:
             await ctx.send(f'Provide a space separated list. I.e. Ex. order! puppey fng zai micke')
