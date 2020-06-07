@@ -20,7 +20,9 @@ TBD: i think checklist for having finished by monday morning is
 - help!
 - scoring!
 - !draft order
-- !join
+- ~~!join~~
+
+old stuff 
 
 - ~~first get discord api keys/testing servers.~~
 - tidy up clients (dataclasses might be better than named-tuples[type-safety, default-values, can use docstrings to document fields better])
