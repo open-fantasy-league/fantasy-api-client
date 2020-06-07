@@ -12,7 +12,16 @@ this is because when you insert/send them, you have to specify that field,
 but when you get a published message about that entity, the field is missing
 (Usually because it's an ID, where that ID has already been specified higher up the chain)
 
-TODO:
+## TODO:
+
+TBD: i think checklist for having finished by monday morning is
+
+- rules!
+- help!
+- scoring!
+- !draft order
+- !join
+
 - ~~first get discord api keys/testing servers.~~
 - tidy up clients (dataclasses might be better than named-tuples[type-safety, default-values, can use docstrings to document fields better])
 - database
