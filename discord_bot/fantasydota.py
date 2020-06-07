@@ -183,7 +183,7 @@ class FantasyDota(commands.Cog):
             player_id = self.player_handler.simplified_player_names_to_id[simplified_str(player)]
         except KeyError:
             return await ctx.send(f'Invalid pick {player}. `!draft players` to see available picks')
-        fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id)
+        fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id).fantasy_team_id
         draft_id = None
         await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
         await ctx.send(f'{ctx.author.name} picked {player}')
@@ -209,7 +209,7 @@ class FantasyDota(commands.Cog):
                 )
             discord_id = ctx.author.id
             try:
-                draft_queue = DraftQueue(self.fantasy_handler.get_user_team(discord_id), player_ids)
+                draft_queue = DraftQueue(self.fantasy_handler.get_user_team(discord_id).fantasy_team_id, player_ids)
             except KeyError:
                 # TOMAYBEDO could auto join league on any interaction like this.
                 return await ctx.send(

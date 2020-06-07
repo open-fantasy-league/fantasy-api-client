@@ -47,7 +47,7 @@ class FantasyBot(commands.Bot):
         await asyncio.gather(self.player_handler.start(), self.fantasy_handler.start())
         await self.fantasy_handler.init_listener(
             self.on_init_draft, self.on_new_draft, self.on_new_pick,
-            self.on_init_users, self.on_update_users
+            self.on_init_users, self.on_update_users, self.player_handler
         )
         return 42
 

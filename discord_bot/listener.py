@@ -1,11 +1,13 @@
 import asyncio
 import logging
 import os
+import uuid
 from pprint import pformat
+from typing import Dict, Optional, List
 
 from clients.fantasy_websocket_client import FantasyWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
-from messages.fantasy_msgs import SubDraft, SubUser, SubLeague
+from messages.fantasy_msgs import SubDraft, SubUser, SubLeague, FantasyTeam, ExternalUser
 from messages.result_msgs import SubTeam
 from utils.errors import ApiException
 from utils.utils import simplified_str
@@ -23,6 +25,7 @@ class PlayerHandler:
         # forgets to await start()
         self.teams_and_players = None
         self.players = None
+        self.player_id_to_names = None
         self.simplified_player_names_to_id = None
 
     # cannot call async funcs in __init__ so need to split into 2-steps
@@ -36,6 +39,7 @@ class PlayerHandler:
         logger.info("PlayerHandler start: players added")
         logger.debug(self.players)
         self.simplified_player_names_to_id = {simplified_str(p["names"][0]["name"]): p["player_id"] for p in self.players}
+        self.player_id_to_names = {p["player_id"]: p["names"][0]["name"] for p in self.players}
         logger.info("Loaded PlayerHandler")
 
 
@@ -43,10 +47,12 @@ class FantasyHandler:
 
     def __init__(self):
         self.client = FantasyWebsocketClient(os.getenv('ADDRESS', '0.0.0.0'))
-        self.users = None
+        self.users: Optional[Dict[uuid.UUID, FantasyTeam]] = None
         self.discord_user_id_to_fantasy_id = None
         self.league = None
-        self.user_id_to_team_id = None
+        self.user_id_to_team: Optional[Dict[uuid.UUID, FantasyTeam]] = None
+        self.drafts = None
+        self.team_id_to_draft_id = None
 
     async def start(self):
         """
@@ -59,34 +65,47 @@ class FantasyHandler:
         """
         logger.info("FantasyHandler Starting")
         asyncio.create_task(self.client.run())
-        self.users = (await self.client.send_sub_users(SubUser(toggle=True)))["data"]["users"]
+        user_resp = await self.client.send_sub_users(SubUser(toggle=True))
+        self.users = {u["external_user_id"]: ExternalUser(**u) for u in user_resp["data"]["users"]}
         logger.info(f"FantasyHandler received {len(self.users)} users")
         logger.debug(f'FantasyHandler users received: {pformat(self.users)}')
-        self.discord_user_id_to_fantasy_id = {u["meta"]["discord_id"]: u["external_user_id"] for u in self.users}
+        self.discord_user_id_to_fantasy_id = {u.meta["discord_id"]: u.external_user_id for u in self.users.values()}
         self.league = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"][0]
-        self.user_id_to_team_id = {t["external_user_id"]: t["fantasy_team_id"] for t in self.league["fantasy_teams"]}
+        self.user_id_to_team = {t["external_user_id"]: FantasyTeam(**t) for t in self.league["fantasy_teams"]}
+
+        drafts_resp = await self.client.send_sub_drafts(SubDraft(all=True))
+        self.drafts = {draft["draft_id"]: draft for draft in drafts_resp["data"]}
+        self.team_id_to_draft_id = {team["fantasy_team_id"]: d["draft_id"] for d in self.drafts.values() for team in d["team_drafts"]}
         logger.info("FantasyHandler Loaded")
 
     def get_user_team(self, discord_id):
         fantasy_user_id = self.discord_user_id_to_fantasy_id[discord_id]
-        return self.user_id_to_team_id[fantasy_user_id]
+        return self.user_id_to_team[fantasy_user_id]
+
+    def get_user_by_team_id(self, team_id):
+        user_id = next((user_id for user_id, t in self.user_id_to_team.items() if t.fantasy_team_id == team_id), None)
+        if not user_id:
+            raise Exception(f"Could not find user for team_id {team_id}")
+        return self.users[user_id]
 
     async def add_user(self, ctx, user, team, discord_id):
         try:
             await self.client.send_insert_users([user])
+            # It's a bit faffy having to update so much state here, but it'll do for now
             self.discord_user_id_to_fantasy_id[discord_id] = user.external_user_id  # update internal state @WEAK
-            self.user_id_to_team_id[user.external_user_id] = team.fantasy_team_id
+            self.user_id_to_team[user.external_user_id] = team
+            self.users[user.external_user_id] = user
             await self.client.send_insert_fantasy_teams([team])
             await ctx.send(f'Congratulations {ctx.author.name} you have succesfully joined the league!')
         except ApiException:
             logger.exception(f'join command incorrect response')
             await ctx.send(f'Sorry {ctx.author.name} something went wrong, please try again or contact an admin')
 
-
     async def init_listener(self,
             init_draft_callback, new_draft_callback, new_pick_callback,
-            init_users_callback, update_users_callback
+            init_users_callback, update_users_callback, player_handler
         ):
+        # It's a bit spaghetti putting player_handler into here. Suggests designed wrong, but just want to get it to work for now
         """
         Converted to now listen to user updates too. Fine for now but pretty
         unweildy. Probably better to split sub-events, and route the messages
@@ -133,23 +152,62 @@ class FantasyHandler:
         logger.error(pformat(drafts))
 
         init_draft_callback(drafts)
-        # ! Was already beign subbed to in start !
-        # # subscribe to users
-        # users_resp = await self.client.send_sub_users(
-        #     SubUser(toggle=True)
-        # )
-        # users = users_resp["data"]["users"]  # do we ever need the other "data"?
-        # init_users_callback(users)
+
         while True:
             new_msg = await self.client.sub_events.get()
-            logger.info(f"Fantasy received new msg: {str(new_msg)[:TRUNCATED_MESSAGE_LENGTH]}")
+            logger.info(f"Fantasy received new msg: {new_msg['message_type']}")
             logger.debug(f"Full message {pformat(new_msg)}")
             if new_msg["message_type"] == "draft":
-                new_draft_callback(new_msg)
+                await self.new_draft_callback(new_msg)
             elif new_msg["message_type"] == "pick":
-                new_pick_callback(new_msg)
+                await self.new_pick_callback(new_msg, player_handler)
             # elif new_msg["message_type"] == "user":
             #     update_users_callback(new_msg)
+
+    async def new_draft_callback(self, msg):
+        for draft in msg["data"]:
+            if draft["draft_id"] in self.drafts:
+                logger.warning(f'Update for a draft that we already knew about {draft["draft_id"]}')
+                continue
+
+            logger.info("Preparing new draft state/channel")
+            self.drafts[draft["draft_id"]] = draft
+            # WHilst yes this is overwriting the existing value, that's what we want.
+            # When the draft for day 2 is created...day 1's draft will be done and dusted,
+            # so it's correct to replace it.
+            for team in draft["team_drafts"]:
+                self.team_id_to_draft_id[team["fantasy_team_id"]] = draft["draft_id"]
+
+            # TODO CT create channel for drafting, and potentially delete old channel if we overwrote
+            # (On day 2 the users get mixed up, dont draft against same people, so cant keep same channels)
+
+    async def new_pick_callback(self, msg, player_handler):
+        for pick in msg["data"]:
+            try:
+                player_name = player_handler.player_id_to_names[pick["player_id"]]
+            except KeyError as e:
+                logger.error(f'New pick callback could not find player-id {e}')
+                continue
+
+            fantasy_team_id = pick["fantasy_team_id"]
+            user = self.get_user_by_team_id(fantasy_team_id)
+            draft_id = pick["draft_id"]
+            print("""blah.send(f'{user.name} picked {player_name}')""")
+            # TODO CT send message in draft channel about user picking player
+
+
+
+            # if draft["draft_id"] in self.drafts:
+            #     logger.warning(f'Update for a draft that we already knew about {draft["draft_id"]}')
+            # else:
+            #     self.drafts[draft["draft_id"]] = draft
+            #     # WHilst yes this is overwriting the existing value, that's what we want.
+            #     # When the draft for day 2 is created...day 1's draft will be done and dusted,
+            #     # so it's correct to replace it.
+            #     for team in draft["team_drafts"]:
+            #         self.team_id_to_draft_id[team["fantasy_team_id"]] = draft["draft_id"]
+            #     # TODO CT create channel for drafting, and potentially delete old channel if we overwrote
+            #     # (On day 2 the users get mixed up, dont draft against same people, so cant keep same channels)
 
 # TODO For now it's ok to just do a `send_get_latest_leaderboards` on every !leaderboard command,
 # However this could be cached by utilising listening to new stat-updates, to trigger a cached-leaderboard-clear.
