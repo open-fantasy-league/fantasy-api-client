@@ -149,8 +149,8 @@ class Dev(commands.Cog):
 
 
 def setup(bot):
-    logging.info("cog: dev setup")
+    logger.info("cog setup")
     bot.add_cog(Dev(bot))    
 
 def teardown(bot):
-    logging.info('cog: dev teardown')
+    logger.info('cog teardown')

@@ -1,12 +1,12 @@
 import asyncio
 import logging
 from collections import defaultdict
-from pprint import pprint
 
 import websockets
 import json
 import uuid
 
+from utils.constants import TRUNCATED_MESSAGE_LENGTH
 from utils.errors import ApiException
 from utils.utils import Encoder
 
@@ -37,7 +37,8 @@ class WebsocketClient:
         #     raise Exception("Websocket still None after 5 attempts")
 
         message_id = message_id or str(uuid.uuid4())
-        logger.info("Sending {} ({}):\n {}\n".format(method, message_id, data))
+        logger.info("Sending {} ({})".format(method, message_id))
+        logger.debug("Sending {} ({}):\n {}\n".format(method, message_id, data))
         msg = {
             "message_id": message_id,
             "method": method,
@@ -66,9 +67,10 @@ class WebsocketClient:
                 response = await self.websocket.recv()
                 # maybe not such a smart change, cos if actually want to see this stuff
                 # setting logger to debug gives a load of other shit too...
-                logger.info("RESPONSE received - TODO give small amount of useful info")
-                logger.debug("RESPONSE: {}\n".format(response))
                 resp = json.loads(response)
+                # logger.info(f'{resp["message_type"]} received - {response[:TRUNCATED_MESSAGE_LENGTH]}...') #  KeyError: 'message_type'
+                logger.info(f'RESPONSE received - {response[:TRUNCATED_MESSAGE_LENGTH]}...') #  If response is less than 25 will still show ...
+                logger.debug("RESPONSE: {}\n".format(response))
                 if resp['mode'] in ('resp', 'error'):
                     self.resps[resp['message_id']] = resp
                     self.resp_events[resp['message_id']].set()

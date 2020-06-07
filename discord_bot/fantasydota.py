@@ -31,6 +31,27 @@ class FantasyDota(commands.Cog):
     def player_handler(self):
         return self.bot.player_handler
 
+    # Listeners
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        # TODO welcome member suggest they join bla bla
+        pass
+        # channel = member.guild.system_channel
+        # if channel is not None:
+        #     await channel.send('Welcome {0.mention}.'.format(member))
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        # TODO Do we need to worry about the below warning?
+        # Warning This function is not guaranteed to be the first event called.
+        # Likewise, this function is not guaranteed to only be called once.
+        # This library implements reconnection logic and thus will end up calling
+        # this event whenever a RESUME request fails.
+        logger.info("fantasy dota cog is ready to party")
+
+
+
     # show we allow the public commands to also be called form dms?
 
     # maybe group rules/scoring by eg info - `info scoring/rules`
@@ -146,9 +167,9 @@ def setup(bot):
     :param bot:
     :return:
     """
-    logging.info('cog: fantasydota setup')
+    logger.info('cog setup')
     cog = FantasyDota(bot)
     bot.add_cog(cog)
 
 def teardown(bot):
-    logging.info('cog: fantasydota teardown')
+    logger.info('cog teardown')
