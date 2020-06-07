@@ -14,11 +14,14 @@ but when you get a published message about that entity, the field is missing
 
 ## TODO:
 
-TBD: i think checklist for having finished by monday morning is
+ThePianoDentist: i think checklist for having finished by monday morning is
 
+@ThePianoDentist
 - rules!
 - help!
 - scoring!
+
+@everyone
 - !draft order
 - ~~!join~~
 
