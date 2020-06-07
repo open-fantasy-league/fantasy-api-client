@@ -101,7 +101,7 @@ async def create_league(
         period_inserts.append(Period(
             uuid.uuid4(), 'Day {}'.format(i+1), (p.strftime(DATE_FMT), next_period.strftime(DATE_FMT)),
             2.0 if final_period else 1.0, users_per_draft, 20, (p - draft_start_before_period).strftime(DATE_FMT),
-            (now - draft_lockdown_before_period).strftime(DATE_FMT), league_id=FANTASY_LEAGUE_ID
+            (p - draft_lockdown_before_period).strftime(DATE_FMT), league_id=FANTASY_LEAGUE_ID
         ))
     await fantasy_client.send_insert_periods(period_inserts)
 

@@ -22,7 +22,7 @@ async def add_fake_users(fantasy_client=None):
         team = FantasyTeam(uuid.uuid4(), user.external_user_id, FANTASY_LEAGUE_ID, f'tpain{i}_team', meta={'discord_id': f'blahblah{i}'})
         users.append(user)
         teams.append(team)
-        players = [random.choice([p for t in dota_teams for p in t["players"]])["fantasy_id"] for _ in range(12)]
+        players = [random.choice([p for t in dota_teams for p in t["players"]])["fantasy_id"] for _ in range(30)]
         draft_queues.append(DraftQueue(team.fantasy_team_id, players))
     await fantasy_client.send_insert_users(users)
     await fantasy_client.send_insert_fantasy_teams(teams)
