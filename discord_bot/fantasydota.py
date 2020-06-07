@@ -183,9 +183,7 @@ class FantasyDota(commands.Cog):
             player_id = self.player_handler.simplified_player_names_to_id[simplified_str(player)]
         except KeyError:
             return await ctx.send(f'Invalid pick {player}. `!draft players` to see available picks')
-        # TODO assumes team-name == user name
-        fantasy_user_id = self.fantasy_handler.discord_user_id_to_fantasy_id[ctx.author.name]
-        fantasy_team_id = self.fantasy_handler.fantasy_user_id_to_team_id[fantasy_user_id]
+        fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id)
         draft_id = None
         await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
         await ctx.send(f'{ctx.author.name} picked {player}')
