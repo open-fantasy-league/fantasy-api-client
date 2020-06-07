@@ -70,7 +70,7 @@ class WebsocketClient:
                 # setting logger to debug gives a load of other shit too...
                 resp = json.loads(response)
                 # logger.info(f'{resp["message_type"]} received - {response[:TRUNCATED_MESSAGE_LENGTH]}...') #  KeyError: 'message_type'
-                logger.info(f'RESPONSE received - {response[:TRUNCATED_MESSAGE_LENGTH]}...') #  If response is less than 25 will still show ...
+                logger.info(f'RESPONSE received - {resp["mode"]} - {resp["message_type"]}')
                 logger.debug("RESPONSE: {}\n".format(response))
                 if resp['mode'] in ('resp', 'error'):
                     self.resps[resp['message_id']] = resp

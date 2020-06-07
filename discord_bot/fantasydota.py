@@ -11,6 +11,7 @@ from discord.utils import get as dget # This cant go wrong surely
 
 
 from messages.fantasy_msgs import DraftQueue, ExternalUser, FantasyTeam, DraftPick
+from utils.channel_text import SCORING_TEXT, HELP_TEXT, RULES_TEXT
 from utils.errors import ApiException
 from utils.utils import simplified_str
 from data.dota_ids import FANTASY_LEAGUE_ID # TODO real fantasy id
@@ -20,10 +21,6 @@ logger = logging.getLogger(__name__)
 
 # TODO @ThePianoDentist
 CATEGORY_NAME = 'Fantasy Dota'
-HELP_TEXT = '`who` to contact for more info,\n a sort of faq\n```more stuff```'
-RULES_TEXT = '```lists how many players per team/per position```'
-SCORING_TEXT = '```ie 3 points assist, 4 points kill```'
-# TODO @ct tidy this mess up...
 HELP_CHANNELS = {
     'Help': HELP_TEXT,
     'Rules': RULES_TEXT,
@@ -122,7 +119,7 @@ class FantasyDota(commands.Cog):
     @commands.is_owner()
     async def scoring(self, ctx):
         """List the scoring system"""
-        await ctx.send(SCORING_TEXT)
+        await ctx.send(self.fantasy_handler.scoring_text)
 
     @commands.group()
     async def show(self, ctx):
@@ -154,26 +151,18 @@ class FantasyDota(commands.Cog):
         - better api call to check user exists rather than keeping state
         """
         new_username = f'{ctx.author.name}#{ctx.author.discriminator}'  # do we want to use discriminator?
-        new_user_id = ctx.author.id  # should this be string?
+        new_user_id = ctx.author.id  # should this be string? (doesnt matter what type)
         if new_user_id in self.fantasy_handler.discord_user_id_to_fantasy_id:
             logger.warning(f'existing user {ctx.author.name} tried to join league')
             await ctx.send(f"Hey {ctx.author.name}, you're already in this league. Ya chump")
             return
+
         user = ExternalUser(uuid.uuid4(), new_username, meta={'discord_id': new_user_id})
         team = FantasyTeam(
             uuid.uuid4(), user.external_user_id, FANTASY_LEAGUE_ID,
-            f'{new_username}_team', meta={'discord_id': new_user_id}
+            f'{new_username}', meta={'discord_id': new_user_id}
         ) 
-        resp = await self.fantasy_handler.client.send_insert_users([user])
-        # check we were succesful
-        if resp["mode"] == "resp":
-            self.fantasy_handler.discord_user_id_to_fantasy_id[new_user_id] = user.external_user_id  # update internal state @WEAK
-            await self.fantasy_handler.client.send_insert_fantasy_teams([team])
-            await ctx.send(f'Congratulations {ctx.author.name} you have succesfully joined the league!')
-        else:
-            # TODO if mode isnt resp does that mean database not been altered?
-            logger.error(f'join command incorrect response')
-            await ctx.send(f'Sorry {ctx.author.name} something went wrong, please try again or contact an admin')
+        await self.fantasy_handler.add_user(ctx, user, team, new_user_id)
 
     @commands.group()
     async def draft(self, ctx):
@@ -197,9 +186,7 @@ class FantasyDota(commands.Cog):
             player_id = self.player_handler.simplified_player_names_to_id[simplified_str(player)]
         except KeyError:
             return await ctx.send(f'Invalid pick {player}. `!draft players` to see available picks')
-        # TODO assumes team-name == user name
-        fantasy_user_id = self.fantasy_handler.discord_user_id_to_fantasy_id[ctx.author.name]
-        fantasy_team_id = self.fantasy_handler.fantasy_user_id_to_team_id[fantasy_user_id]
+        fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id).fantasy_team_id
         draft_id = None
         await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
         await ctx.send(f'{ctx.author.name} picked {player}')
@@ -225,14 +212,15 @@ class FantasyDota(commands.Cog):
                 )
             discord_id = ctx.author.id
             try:
-                draft_queue = DraftQueue(self.fantasy_handler.discord_user_id_to_fantasy_id[discord_id], player_ids)
+                draft_queue = DraftQueue(self.fantasy_handler.get_user_team(discord_id).fantasy_team_id, player_ids)
             except KeyError:
                 # TOMAYBEDO could auto join league on any interaction like this.
                 return await ctx.send(
                     'You are not currently registered to this league. Please type join! in main channel'
                 )
             try:
-                resp = await self.fantasy_handler.client.send_insert_draft_queues([draft_queue])
+                await self.fantasy_handler.client.send_insert_draft_queues([draft_queue])
+                return await ctx.send(f'Success!')
             except ApiException:
                 await ctx.send(f'Something went horribly wrong. Please DM a mod to investigate')
         else:

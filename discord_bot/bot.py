@@ -58,8 +58,9 @@ class FantasyBot(commands.Bot):
         logger.info("FantasyBot:ConnectClients: init fantasy listener")
         asyncio.create_task(self.fantasy_handler.init_listener(
             self.on_init_draft, self.on_new_draft, self.on_new_pick,
-            self.on_init_users, self.on_update_users
+            self.on_init_users, self.on_update_users, self.player_handler
         ))
+
         logger.info("FantasyBot:ConnectClients: init leaderboard listener")
         asyncio.create_task(self.leaderboard_handler.init_listener(self.on_init_leaderboards,
                                                      self.on_update_leaderboards))
