@@ -135,6 +135,7 @@ class FantasyHandler:
         self.user_id_to_team: Optional[Dict[uuid.UUID, FantasyTeam]] = None
         self.drafts = None
         self.team_id_to_draft_id = None
+        self.draft_ids_to_channel_ids = None
 
     async def start(self):
         """
@@ -163,6 +164,7 @@ class FantasyHandler:
         drafts_resp = await self.client.send_sub_drafts(SubDraft(all=True))
         self.drafts = {draft["draft_id"]: draft for draft in drafts_resp["data"]}
         self.team_id_to_draft_id = {team["fantasy_team_id"]: d["draft_id"] for d in self.drafts.values() for team in d["team_drafts"]}
+        self.draft_ids_to_channel_ids = {draft["draft_id"]: draft["meta"].get("channel_id") for draft in self.drafts.values()}
         logger.info("FantasyHandler Loaded")
 
     def get_user_team(self, discord_id):

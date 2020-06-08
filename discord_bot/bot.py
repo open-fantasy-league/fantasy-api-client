@@ -10,6 +10,7 @@ from discord.utils import get as dget # This cant go wrong surely
 
 from data.dota_ids import FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, FANTASY_USER_LEADERBOARD_ID
 from discord_bot.listener import PlayerHandler, FantasyHandler, LeaderboardHandler
+from messages.fantasy_msgs import DraftUpdate
 from utils.channel_text import HELP_COMMAND_TEXT
 
 logging.basicConfig(level=logging.INFO)
@@ -179,9 +180,11 @@ class FantasyBot(commands.Bot):
                 overwrites[member] = PermissionOverwrite(read_messages=True)
             category = dget(guild.categories, name="Fantasy Dota") # TODO not hardcode stuff
             logger.info(f'FantasyBot:on_new_draft: creating new channel for draft {draft["draft_id"]}')
+            # TODO CT should go into the fantasydota category (or a drafts subcategory)
             new_channel = await guild.create_text_channel(f'draft {draft["draft_id"]}', overwrites=overwrites)
+            self.fantasy_handler.draft_ids_to_channel_ids[draft["draft_id"]] = new_channel.id
+            await self.fantasy_handler.client.send_update_drafts(DraftUpdate(draft["draft_id"], meta={'channel_id': new_channel.id}))
             await new_channel.send(f'Insert welcome message here greeting our draftees')
-
 
     async def on_new_pick(self, pick):
         logger.info("FantasyBot:on_new_pick: enter")

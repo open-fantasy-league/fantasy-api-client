@@ -167,7 +167,8 @@ class FantasyDota(commands.Cog):
 
     @commands.command()
     async def players(self, ctx):
-        """Print out available players to pick from
+        """Print out available players to pick from.
+        If called from the draft channel, shows only unpicked players left.
         """
         # TODO CT if this is a draft channel, should filter out already picked players if possible
         printy = ""
@@ -198,11 +199,21 @@ class FantasyDota(commands.Cog):
             player_id = self.player_handler.simplified_player_names_to_id[simplified_str(player)]
         except KeyError:
             return await ctx.send(f'Invalid pick {player}. `!players ` to see available picks')
-        fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id).fantasy_team_id
-        # TODO CT This needs to not be None
-        draft_id = None
-        await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
-        await ctx.send(f'{ctx.author.name} picked {player}')
+        try:
+            fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id).fantasy_team_id
+            # TODO CT This needs to not be None
+            draft_id = None
+            for k, v in self.fantasy_handler.draft_ids_to_channel_ids.items():
+                if v == ctx.channel.id:
+                    draft_id = k
+                    break
+            if draft_id is None:
+                return await ctx.send(f'Please use `!pick` command in your draft channel')
+            await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
+            await ctx.send(f'{ctx.author.name} picked {player}')
+        except Exception:
+            logger.exception("Pick error: ")
+            return await ctx.send(f'Something went horribly wrong!')
 
     @draft.command()
     @commands.dm_only()
