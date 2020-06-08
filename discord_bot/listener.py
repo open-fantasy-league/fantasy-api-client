@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import os
 import uuid
@@ -13,10 +14,11 @@ from messages.fantasy_msgs import SubDraft, SubUser, SubLeague, FantasyTeam, Ext
 from messages.result_msgs import SubTeam
 from utils.errors import ApiException
 from utils.utils import simplified_str
-from utils.constants import TRUNCATED_MESSAGE_LENGTH
-
+from utils.constants import TRUNCATED_MESSAGE_LENGTH, DATE_FMT
 
 logger = logging.getLogger(__name__)
+
+ZERO_TIME_DELTA = datetime.timedelta(0)
 
 
 class LeaderboardHandler:
@@ -129,13 +131,15 @@ class FantasyHandler:
 
     def __init__(self):
         self.client = FantasyWebsocketClient(os.getenv('ADDRESS', '0.0.0.0'))
-        self.users: Optional[Dict[uuid.UUID, FantasyTeam]] = None
+        self.users: Optional[Dict[str, FantasyTeam]] = None
         self.discord_user_id_to_fantasy_id = None
         self.league = None
-        self.user_id_to_team: Optional[Dict[uuid.UUID, FantasyTeam]] = None
+        self.user_id_to_team: Optional[Dict[str, FantasyTeam]] = None
         self.drafts = None
         self.team_id_to_draft_id = None
         self.draft_ids_to_channel_ids = None
+        self.draft_choices = None
+        self.pick_timings_by_username = {}
 
     async def start(self):
         """
@@ -149,29 +153,87 @@ class FantasyHandler:
         logger.info("FantasyHandler Starting")
         asyncio.create_task(self.client.run())
         user_resp = await self.client.send_sub_users(SubUser(toggle=True))
-        self.users = {u["external_user_id"]: ExternalUser(**u) for u in user_resp["data"]["users"]}
+        # WARNING
+        # bit of a mess but user-id always uuid, draft_id always str
+        self.users = {str(u["external_user_id"]): ExternalUser(**u) for u in user_resp["data"]["users"]}
         logger.info(f"FantasyHandler received {len(self.users)} users")
         logger.debug(f'FantasyHandler users received: {pformat(self.users)}')
         self.discord_user_id_to_fantasy_id = {u.meta["discord_id"]: u.external_user_id for u in self.users.values()}
         league_resp = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"]
         if league_resp:
             self.league = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"][0]  # TODO breaks if no leagues
-            self.user_id_to_team = {t["external_user_id"]: FantasyTeam(**t) for t in self.league["fantasy_teams"]}
+            print('self.league["fantasy_teams"]')
+            print(self.league["fantasy_teams"])
+            self.user_id_to_team = {str(t["external_user_id"]): FantasyTeam(**t) for t in self.league["fantasy_teams"]}
         else:
             self.user_id_to_team = {}
             self.league = None
 
         drafts_resp = await self.client.send_sub_drafts(SubDraft(all=True))
         self.drafts = {draft["draft_id"]: draft for draft in drafts_resp["data"]}
-        self.team_id_to_draft_id = {team["fantasy_team_id"]: d["draft_id"] for d in self.drafts.values() for team in d["team_drafts"]}
+        self.team_id_to_draft_id = {str(team["fantasy_team_id"]): d["draft_id"] for d in self.drafts.values() for team in d["team_drafts"]}
         self.draft_ids_to_channel_ids = {draft["draft_id"]: draft["meta"].get("channel_id") for draft in self.drafts.values()}
+
+        self.draft_choices = {
+            d["draft_id"]: self.sorted_draft_choices(d) for d in self.drafts.values()
+        }
         logger.info("FantasyHandler Loaded")
 
+    def sorted_draft_choices(self, draft):
+        print(draft)
+        print([len(x["draft_choices"]) for x in draft["team_drafts"]])
+        out = sorted(
+                [
+                    {"username": self.users[str(t["external_user_id"])].name, "choice": [datetime.datetime.strptime(c, DATE_FMT) for c in choice["timespan"]]}
+                    for t in draft["team_drafts"] for choice in t["draft_choices"]
+                ],
+                key=lambda x: x["choice"][0]
+            )
+        logger.info(f"draft {draft['draft_id']} sorted_draft_choices: {out}")
+        return out
+
+    @staticmethod
+    def printable_time_until_choice(user_and_choice, now):
+        choice = user_and_choice["choice"]
+        time_until_start = choice[0] - now
+        if time_until_start < ZERO_TIME_DELTA:
+            # have to recalc otherwise the minus one comes out weird
+            return f"{user_and_choice['username']} {(now - choice[0]).seconds}s left"
+        else:
+            time_until_end = choice[1] - now
+            return f"{user_and_choice['username']} can pick in {time_until_end.seconds}s"
+
+    def future_draft_choices(self, draft_id, limit=6, filter_first=True):
+        """
+
+        :param draft_id:
+        :param limit:
+        :param filter_first: hacky way of when someone does a pick, it doesnt return that they still have to pick
+        :return:
+        """
+        choices = self.draft_choices[draft_id]
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        print("future_draft_choices")
+        print([self.printable_time_until_choice(c, now) for c in choices])
+        filtered_choices = [self.printable_time_until_choice(c, now) for c in choices if c["choice"][-1] > now][:limit]
+        print(filtered_choices)
+        if filter_first:
+            filtered_choices = filtered_choices[1:]
+        return "**next picks:**\n" + "\n".join(filtered_choices)
+
     def get_user_team(self, discord_id):
+        print("self.discord_user_id_to_fantasy_id[discord_id]")
+        print(discord_id)
+        print(self.discord_user_id_to_fantasy_id)
+        print(self.discord_user_id_to_fantasy_id[discord_id])
         fantasy_user_id = self.discord_user_id_to_fantasy_id[discord_id]
         return self.user_id_to_team[fantasy_user_id]
 
     def get_user_by_team_id(self, team_id):
+        print("get_user_by_team_id")
+        print(self.user_id_to_team)
+        print(team_id)
+        print(type(team_id))
         user_id = next((user_id for user_id, t in self.user_id_to_team.items() if t.fantasy_team_id == team_id), None)
         if not user_id:
             raise Exception(f"Could not find user for team_id {team_id}")
@@ -264,11 +326,12 @@ class FantasyHandler:
 
             logger.info("Preparing new draft state/channel")
             self.drafts[draft["draft_id"]] = draft
+            self.draft_choices[draft["draft_id"]] = self.sorted_draft_choices(draft)
             # WHilst yes this is overwriting the existing value, that's what we want.
             # When the draft for day 2 is created...day 1's draft will be done and dusted,
             # so it's correct to replace it.
             for team in draft["team_drafts"]:
-                self.team_id_to_draft_id[team["fantasy_team_id"]] = draft["draft_id"]
+                self.team_id_to_draft_id[str(team["fantasy_team_id"])] = draft["draft_id"]
             new_drafts.append(draft)
         return new_drafts
 
@@ -280,7 +343,7 @@ class FantasyHandler:
                 logger.error(f'New pick callback could not find player-id {e}')
                 continue
 
-            fantasy_team_id = pick["fantasy_team_id"]
+            fantasy_team_id = str(pick["fantasy_team_id"])
             user = self.get_user_by_team_id(fantasy_team_id)
             draft_id = pick["draft_id"]
             logger.info(f'FantasyHandler:on_new_pick: {user.name} picked {player_name} in draft {draft_id}')

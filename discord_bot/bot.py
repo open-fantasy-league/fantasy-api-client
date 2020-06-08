@@ -188,7 +188,7 @@ class FantasyBot(commands.Bot):
             new_channel = await guild.create_text_channel(f'draft {draft["draft_id"]}', overwrites=overwrites,
                                                           category=category)
             self.fantasy_handler.draft_ids_to_channel_ids[draft["draft_id"]] = new_channel.id
-            await self.fantasy_handler.client.send_update_drafts(DraftUpdate(draft["draft_id"], meta={'channel_id': new_channel.id}))
+            await self.fantasy_handler.client.send_update_drafts([DraftUpdate(draft["draft_id"], meta={'channel_id': new_channel.id})])
             await new_channel.send(f'Insert welcome message here greeting our draftees')
 
     async def on_new_pick(self, pick):
@@ -198,7 +198,7 @@ class FantasyBot(commands.Bot):
         if guild is None:
             logger.error(f'FantasyBot:on_new_pick: cant find guild with id {GUILD_ID}')
             return
-        member = guild.get_member(user["meta"]["discord_id"])
+        member = guild.get_member(user.meta["discord_id"])
         channel = dget(guild.channels, name=f'draft {draft_id}')
         if member is None or channel is None:
             logger.error("FantasyBot:on_new_pick: failed to find member or draft channel")

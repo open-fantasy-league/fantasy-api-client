@@ -69,8 +69,8 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
         # TODO search for match with correct teams.
         # For now dont put matches into db preemptively, just add when we get results.
         # throw the team names in meta?
-        fantasy_match_id = uuid.uuid4()
-        fantasy_series_id = uuid.uuid4()
+        fantasy_match_id = str(uuid.uuid4())
+        fantasy_series_id = str(uuid.uuid4())
         match_resp = rate_limited_retrying_request(MATCH_DETAILS_URL.format(key=APIKEY, match_id=match_id))
         odota_match_resp = rate_limited_retrying_request(MATCH_DETAILS_OPEN_DOTA_URL.format(match_id=match_id))
         player_results = []

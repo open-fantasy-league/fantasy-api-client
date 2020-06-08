@@ -158,9 +158,9 @@ class FantasyDota(commands.Cog):
             await ctx.send(f"Hey {ctx.author.name}, you're already in this league. Ya chump")
             return
 
-        user = ExternalUser(uuid.uuid4(), new_username, meta={'discord_id': new_user_id})
+        user = ExternalUser(str(uuid.uuid4()), new_username, meta={'discord_id': new_user_id})
         team = FantasyTeam(
-            uuid.uuid4(), user.external_user_id, FANTASY_LEAGUE_ID,
+            str(uuid.uuid4()), user.external_user_id, FANTASY_LEAGUE_ID,
             f'{new_username}', meta={'discord_id': new_user_id}
         ) 
         await self.fantasy_handler.add_user(ctx, user, team, new_user_id)
@@ -186,9 +186,15 @@ class FantasyDota(commands.Cog):
     
     @draft.command()
     async def info(self, ctx):
-        """Shows draft ordering and time until next pick"""
-        # TODO show next drafters, and when user up next.
-        await ctx.send(f"next drafters bla bla\n {ctx.author.name} you pick in 2 seconds")
+        """Shows draft ordering and deadlines for picking"""
+        draft_id = None
+        for k, v in self.fantasy_handler.draft_ids_to_channel_ids.items():
+            if v == ctx.channel.id:
+                draft_id = k
+                break
+        if draft_id is None:
+            return await ctx.send(f'Please use `!pick` command in your draft channel')
+        await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, filter_first=False, limit=9))
 
     @draft.command()
     @commands.guild_only() # TODO make usable in draft channel. maybe make only visible their too?
@@ -208,8 +214,17 @@ class FantasyDota(commands.Cog):
                     break
             if draft_id is None:
                 return await ctx.send(f'Please use `!pick` command in your draft channel')
-            await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
+            try:
+                await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
+            except ApiException as e:
+                logger.info("Invalid pick: ", exc_info=True)
+                if 'NotFound' in str(e):  # so fucking hacky
+                    await ctx.send(f'Not your turn')
+                    return await ctx.send(self.fantasy_handler.future_draft_choices(draft_id))
+                else:
+                    return await ctx.send(f'Invalid pick. Select a different player. See !players')
             await ctx.send(f'{ctx.author.name} picked {player}')
+            await ctx.send(self.fantasy_handler.future_draft_choices(draft_id))
         except Exception:
             logger.exception("Pick error: ")
             return await ctx.send(f'Something went horribly wrong!')

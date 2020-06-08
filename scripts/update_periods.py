@@ -28,7 +28,7 @@ async def update_period(new_draft_start: datetime.datetime, new_draft_lockdown: 
         print([period["period_id"] for period in league_info["data"][0]["periods"]])
         period_id = input("Which id would you like to update").strip()
     period_updates = [
-        PeriodUpdate(uuid.UUID(period_id), draft_start=new_draft_start.strftime(DATE_FMT), draft_lockdown=new_draft_lockdown.strftime(DATE_FMT))
+        PeriodUpdate(str(period_id), draft_start=new_draft_start.strftime(DATE_FMT), draft_lockdown=new_draft_lockdown.strftime(DATE_FMT))
     ]
     await fantasy_client.send_update_periods(period_updates)
 

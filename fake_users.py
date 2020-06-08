@@ -8,7 +8,7 @@ from messages.fantasy_msgs import ExternalUser, FantasyTeam, DraftQueue
 from data.dota_ids import FANTASY_LEAGUE_ID
 
 
-async def add_fake_users(fantasy_client=None):
+async def add_fake_users(fantasy_client=None, num_fakes=35):
     if fantasy_client is None:
         fantasy_client = FantasyWebsocketClient('0.0.0.0', 3003)
         asyncio.create_task(fantasy_client.run())
@@ -17,9 +17,9 @@ async def add_fake_users(fantasy_client=None):
     draft_queues = []
     with open("data/players.json") as f:
         dota_teams = json.load(f)
-    for i in range(35):
-        user = ExternalUser(uuid.uuid4(), f"tpain{i}", meta={'discord_id': f'blahblah{i}'})
-        team = FantasyTeam(uuid.uuid4(), user.external_user_id, FANTASY_LEAGUE_ID, f'tpain{i}_team', meta={'discord_id': f'blahblah{i}'})
+    for i in range(num_fakes):
+        user = ExternalUser(str(uuid.uuid4()), f"tpain{i}", meta={'discord_id': f'blahblah{i}'})
+        team = FantasyTeam(str(uuid.uuid4()), user.external_user_id, FANTASY_LEAGUE_ID, f'tpain{i}_team', meta={'discord_id': f'blahblah{i}'})
         users.append(user)
         teams.append(team)
         players = [random.choice([p for t in dota_teams for p in t["players"]])["fantasy_id"] for _ in range(30)]

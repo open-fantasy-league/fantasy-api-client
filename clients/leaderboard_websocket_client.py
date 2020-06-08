@@ -23,7 +23,7 @@ class LeaderboardWebsocketClient(WebsocketClient):
     async def send_insert_stats(self, data: List[Stat]):
         return await self.send_and_get_resp("Stat", data)
 
-    async def send_get_latest_leaderboards(self, data: List[uuid.UUID]):
+    async def send_get_latest_leaderboards(self, data: List[str]):
         return await self.send_and_get_resp("LeaderboardGet", data)
 
 

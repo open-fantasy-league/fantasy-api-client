@@ -31,7 +31,7 @@ async def create_league(
         period_starts: List[datetime.datetime],
         draft_start_before_period: datetime.timedelta = datetime.timedelta(hours=1),
         draft_lockdown_before_period: datetime.timedelta = datetime.timedelta(hours=3),
-        fake_users: bool =False,
+        num_fake_users: int =0,
         fake_leaderboards: bool=False,
 ):
     result_client = ResultWebsocketClient(ADDRESS, 3001)
@@ -61,8 +61,8 @@ async def create_league(
         League(FANTASY_LEAGUE_ID, name, FANTASY_COMPETITION_ID, 5, 5, 2, 3, 2, 3)
     ])
 
-    if fake_users:
-        users = await add_fake_users(fantasy_client)
+    if num_fake_users:
+        users = await add_fake_users(fantasy_client, num_fakes=num_fake_users)
         if fake_leaderboards:
             await add_fake_leaderboards([u.external_user_id for u in users], leaderboard_client)
 
@@ -104,8 +104,8 @@ async def create_league(
         # equal to number of teams playing on that day
         users_per_draft = 3 if final_period else 4
         period_inserts.append(Period(
-            uuid.uuid4(), 'Day {}'.format(i+1), (p.strftime(DATE_FMT), next_period.strftime(DATE_FMT)),
-            2.0 if final_period else 1.0, users_per_draft, 20, (p - draft_start_before_period).strftime(DATE_FMT),
+            str(uuid.uuid4()), 'Day {}'.format(i+1), (p.strftime(DATE_FMT), next_period.strftime(DATE_FMT)),
+            2.0 if final_period else 1.0, users_per_draft, 30, (p - draft_start_before_period).strftime(DATE_FMT),
             (p - draft_lockdown_before_period).strftime(DATE_FMT), league_id=FANTASY_LEAGUE_ID
         ))
     await fantasy_client.send_insert_periods(period_inserts)
@@ -153,6 +153,6 @@ if __name__ == "__main__":
         11979, 'Blast Bounty Hunt',
         period_starts, draft_lockdown_before_period=datetime.timedelta(hours=3),
         #period_starts, draft_lockdown_before_period=datetime.timedelta(hours=9001),
-        draft_start_before_period=datetime.timedelta(hours=1), fake_users=False,
+        draft_start_before_period=datetime.timedelta(hours=1), num_fake_users=3,
         fake_leaderboards=True
     ))
