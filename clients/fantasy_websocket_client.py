@@ -57,3 +57,6 @@ class FantasyWebsocketClient(WebsocketClient):
 
     async def send_insert_valid_players(self, data: List[ValidPlayer]):
         return await self.send_and_get_resp("ValidPlayer", data)
+
+    async def send_get_latest_teams(self):
+        return await self.send_and_get_resp("LatestTeam", None)

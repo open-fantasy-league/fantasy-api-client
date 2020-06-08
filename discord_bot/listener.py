@@ -131,15 +131,16 @@ class FantasyHandler:
 
     def __init__(self):
         self.client = FantasyWebsocketClient(os.getenv('ADDRESS', '0.0.0.0'))
-        self.users: Optional[Dict[str, FantasyTeam]] = None
+        self.users: Optional[Dict[str, ExternalUser]] = None
         self.discord_user_id_to_fantasy_id = None
         self.league = None
         self.user_id_to_team: Optional[Dict[str, FantasyTeam]] = None
+        self.team_id_to_user_id: Dict[str, str] = {}
         self.drafts = None
         self.team_id_to_draft_id = None
-        self.draft_ids_to_channel_ids = None
+        self.draft_ids_to_channel_ids = {}
+        self.channel_ids_to_draft_ids = {}
         self.draft_choices = None
-        self.pick_timings_by_username = {}
 
     async def start(self):
         """
@@ -165,6 +166,7 @@ class FantasyHandler:
             print('self.league["fantasy_teams"]')
             print(self.league["fantasy_teams"])
             self.user_id_to_team = {str(t["external_user_id"]): FantasyTeam(**t) for t in self.league["fantasy_teams"]}
+            self.team_id_to_user_id = {t["fantasy_team_id"]: t["external_user_id"] for t in self.league["fantasy_teams"]}
         else:
             self.user_id_to_team = {}
             self.league = None
@@ -172,7 +174,9 @@ class FantasyHandler:
         drafts_resp = await self.client.send_sub_drafts(SubDraft(all=True))
         self.drafts = {draft["draft_id"]: draft for draft in drafts_resp["data"]}
         self.team_id_to_draft_id = {str(team["fantasy_team_id"]): d["draft_id"] for d in self.drafts.values() for team in d["team_drafts"]}
-        self.draft_ids_to_channel_ids = {draft["draft_id"]: draft["meta"].get("channel_id") for draft in self.drafts.values()}
+        for draft in self.drafts.values():
+            self.draft_ids_to_channel_ids[draft["draft_id"]] = draft["meta"].get("channel_id")
+            self.channel_ids_to_draft_ids[draft["meta"].get("channel_id")] = draft["draft_id"]
 
         self.draft_choices = {
             d["draft_id"]: self.sorted_draft_choices(d) for d in self.drafts.values()
@@ -219,23 +223,16 @@ class FantasyHandler:
         print(filtered_choices)
         if filter_first:
             filtered_choices = filtered_choices[1:]
-        return "**next picks:**\n" + "\n".join(filtered_choices)
+        return "**next picks:**\n\n> " + "\n".join(filtered_choices)
 
     def get_user_team(self, discord_id):
-        print("self.discord_user_id_to_fantasy_id[discord_id]")
-        print(discord_id)
-        print(self.discord_user_id_to_fantasy_id)
-        print(self.discord_user_id_to_fantasy_id[discord_id])
         fantasy_user_id = self.discord_user_id_to_fantasy_id[discord_id]
         return self.user_id_to_team[fantasy_user_id]
 
     def get_user_by_team_id(self, team_id):
-        print("get_user_by_team_id")
-        print(self.user_id_to_team)
-        print(team_id)
-        print(type(team_id))
-        user_id = next((user_id for user_id, t in self.user_id_to_team.items() if t.fantasy_team_id == team_id), None)
-        if not user_id:
+        try:
+            user_id = self.team_id_to_user_id[team_id]
+        except KeyError:
             raise Exception(f"Could not find user for team_id {team_id}")
         return self.users[user_id]
 
@@ -245,6 +242,7 @@ class FantasyHandler:
             # It's a bit faffy having to update so much state here, but it'll do for now
             self.discord_user_id_to_fantasy_id[discord_id] = user.external_user_id  # update internal state @WEAK
             self.user_id_to_team[user.external_user_id] = team
+            self.team_id_to_user_id[team.fantasy_team_id] = user.external_user_id
             self.users[user.external_user_id] = user
             await self.client.send_insert_fantasy_teams([team])
             await ctx.send(f'Congratulations {ctx.author.name} you have succesfully joined the league!')

@@ -145,7 +145,7 @@ class Dev(commands.Cog):
             await ctx.send(f'Private message sent to {member.name}')
     
     @commands.command()
-    async def info(self, ctx):
+    async def guild_id(self, ctx):
         # await ctx.send((ctx.author.name, ctx.author.discriminator, ctx.author.id))
         await ctx.send((ctx.guild.id))
 

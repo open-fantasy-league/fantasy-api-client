@@ -188,8 +188,10 @@ class FantasyBot(commands.Bot):
             new_channel = await guild.create_text_channel(f'draft {draft["draft_id"]}', overwrites=overwrites,
                                                           category=category)
             self.fantasy_handler.draft_ids_to_channel_ids[draft["draft_id"]] = new_channel.id
+            self.fantasy_handler.channel_ids_to_draft_ids[new_channel.id] = draft["draft_id"]
             await self.fantasy_handler.client.send_update_drafts([DraftUpdate(draft["draft_id"], meta={'channel_id': new_channel.id})])
-            await new_channel.send(f'Insert welcome message here greeting our draftees')
+            await new_channel.send(f'Welcome drafters!')
+            await new_channel.send(self.fantasy_handler.future_draft_choices(draft["draft_id"]))
 
     async def on_new_pick(self, pick):
         logger.info("FantasyBot:on_new_pick: enter")
@@ -204,6 +206,7 @@ class FantasyBot(commands.Bot):
             logger.error("FantasyBot:on_new_pick: failed to find member or draft channel")
             return
         await channel.send(f'{member.name} just picked {playername}')
+        await channel.send(self.fantasy_handler.future_draft_choices(draft_id))
 
 
     async def on_command_error(self, ctx, error):

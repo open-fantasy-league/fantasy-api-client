@@ -34,7 +34,7 @@ async def update_period(new_draft_start: datetime.datetime, new_draft_lockdown: 
 
 asyncio.run(
     update_period(
-        datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=20),
+        datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=40),
         datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=10)
     )
 )

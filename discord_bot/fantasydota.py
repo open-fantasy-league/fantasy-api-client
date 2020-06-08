@@ -121,6 +121,21 @@ class FantasyDota(commands.Cog):
         """List the scoring system"""
         await ctx.send(SCORING_TEXT)
 
+    @commands.command()
+    async def teams(self, ctx):
+        """Display all teams. If used in draft channel shows only drafters teams."""
+        # TODO
+        draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
+        teams = await self.fantasy_handler.client.send_get_latest_teams()
+        team_ids_to_player_ids = teams["data"]
+        printy = ""
+        for team_id, player_ids in team_ids_to_player_ids.items():
+            if not draft_id or self.fantasy_handler.team_id_to_draft_id.get(team_id) == draft_id:
+                user = self.fantasy_handler.get_user_by_team_id(team_id)
+                players = [self.player_handler.player_id_to_names[pid] for pid in player_ids]
+                printy += f'**{user.name}**:  {", ".join(players)}\n\n'
+        await ctx.send(printy)
+
     @commands.group()
     async def show(self, ctx):
         """Display various information"""
@@ -177,26 +192,22 @@ class FantasyDota(commands.Cog):
             printy += f'**{team["names"][0]["name"]}**:  {", ".join(p["player"]["names"][0]["name"] for p in team["players"])}\n\n'
         await ctx.send(printy)
 
-    @commands.group()
-    async def draft(self, ctx):
-        """Commands to use in a draft"""
-        if ctx.invoked_subcommand is None:
-            # just print the info
-            await self.info(ctx)
+    # @commands.group()
+    # async def draft(self, ctx):
+    #     """Commands to use in a draft"""
+    #     if ctx.invoked_subcommand is None:
+    #         # just print the info
+    #         await self.info(ctx)
     
-    @draft.command()
+    @commands.command()
     async def info(self, ctx):
         """Shows draft ordering and deadlines for picking"""
-        draft_id = None
-        for k, v in self.fantasy_handler.draft_ids_to_channel_ids.items():
-            if v == ctx.channel.id:
-                draft_id = k
-                break
+        draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
         if draft_id is None:
             return await ctx.send(f'Please use `!pick` command in your draft channel')
         await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, filter_first=False, limit=9))
 
-    @draft.command()
+    @commands.command()
     @commands.guild_only() # TODO make usable in draft channel. maybe make only visible their too?
     async def pick(self, ctx, player):
         """Make your pick"""
@@ -207,11 +218,7 @@ class FantasyDota(commands.Cog):
             return await ctx.send(f'Invalid pick {player}. `!players ` to see available picks')
         try:
             fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id).fantasy_team_id
-            draft_id = None
-            for k, v in self.fantasy_handler.draft_ids_to_channel_ids.items():
-                if v == ctx.channel.id:
-                    draft_id = k
-                    break
+            draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
             if draft_id is None:
                 return await ctx.send(f'Please use `!pick` command in your draft channel')
             try:
@@ -219,8 +226,8 @@ class FantasyDota(commands.Cog):
             except ApiException as e:
                 logger.info("Invalid pick: ", exc_info=True)
                 if 'NotFound' in str(e):  # so fucking hacky
-                    await ctx.send(f'Not your turn')
-                    return await ctx.send(self.fantasy_handler.future_draft_choices(draft_id))
+                    await ctx.send(f'Not your turn {ctx.author.name}')
+                    return await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, filter_first=False))
                 else:
                     return await ctx.send(f'Invalid pick. Select a different player. See !players')
             await ctx.send(f'{ctx.author.name} picked {player}')
@@ -229,7 +236,7 @@ class FantasyDota(commands.Cog):
             logger.exception("Pick error: ")
             return await ctx.send(f'Something went horribly wrong!')
 
-    @draft.command()
+    @commands.command()
     @commands.dm_only()
     async def order(self, ctx, *args):
         """Preset draft preferences for if you miss draft, or a pick.
