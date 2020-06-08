@@ -119,7 +119,7 @@ class FantasyDota(commands.Cog):
     @commands.is_owner()
     async def scoring(self, ctx):
         """List the scoring system"""
-        await ctx.send(self.fantasy_handler.scoring_text)
+        await ctx.send(SCORING_TEXT)
 
     @commands.group()
     async def show(self, ctx):

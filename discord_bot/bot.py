@@ -9,7 +9,7 @@ from discord.utils import get as dget # This cant go wrong surely
 
 from data.dota_ids import FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, FANTASY_USER_LEADERBOARD_ID
 from discord_bot.listener import PlayerHandler, FantasyHandler, LeaderboardHandler
-
+from utils.channel_text import HELP_TEXT
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ dotenv.load_dotenv()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 COMMAND_PREFIX = '!'
 # TODO @ThePianoDentist
-HELP_COMMAND_TEXT = 'i help you help we help'
+HELP_COMMAND_TEXT = HELP_TEXT
 
 if not BOT_TOKEN:
     print('No bot token found, check .env')

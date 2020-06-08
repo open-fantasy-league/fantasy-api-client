@@ -52,6 +52,7 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
         SubLeague(all=True)
     )
     fantasy_league = next(f for f in fantasy_leagues["data"] if f["competition_id"] == fantasy_competitition_id)
+    teams = {t["fantasy_team_id"]: t for t in fantasy_league["fantasy_teams"]}
     # Filter out matches that already have their results set
     existing_match_ids = (m["meta"]["dota_id"] for m in fantasy_matches if len(m["team_results"]) != 0)
     matches_to_scrape = [m['match_id'] for m in match_list if m['match_id'] not in existing_match_ids and m['start_time'] >= tstamp_from]
@@ -90,7 +91,6 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
             fantasy_match_id, dire_fantasy_id, "0" if odota_match_resp["radiant_win"] else "1", dire_meta
         ))
         user_points = defaultdict(float)
-        user_teams = {'': []}
         # TODO unhardcode
         period_multiplier = 1.0
         now = datetime.datetime.now(datetime.timezone.utc).strftime(DATE_FMT)
@@ -111,7 +111,7 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
         for player in odota_match_resp['players']:
             parse_player(
                 player, fantasy_league, fantasy_match_id, DOTA_TO_FANTASY_PLAYER_IDS, period_multiplier,
-                player_results, user_teams,
+                player_results, teams,
                 user_points, user_points_dict, player_points_dict
             )
 
@@ -137,7 +137,7 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
 
 
 def parse_player(
-        player, fantasy_league, fantasy_match_id, DOTA_TO_FANTASY_PLAYER_IDS, period_multiplier, player_results, user_teams,
+        player, fantasy_league, fantasy_match_id, DOTA_TO_FANTASY_PLAYER_IDS, period_multiplier, player_results, teams,
         user_points, user_points_dict, player_points_dict
 ):
     fantasy_player_id = DOTA_TO_FANTASY_PLAYER_IDS[player["account_id"]]
@@ -164,14 +164,14 @@ def parse_player(
     player_results.append(PlayerResult(
         fantasy_match_id, fantasy_player_id, player_result
     ))
-    for user, team in user_teams.items():
+    for team_id, team in teams.items():
         if fantasy_player_id in team:
-            user_points[user] += player_result["points"]
+            user_points[team_id] += player_result["points"]
             try:
-                user_points_dict[user]["points"] += player_result["points"]
+                user_points_dict[team_id]["points"] += player_result["points"]
             except KeyError:
-                new_user = {"player_id": user, "points": player_result["points"]}
-                user_points_dict[user] = new_user
+                new_user = {"player_id": team_id, "points": player_result["points"]}
+                user_points_dict[team_id] = new_user
 
     try:
         player_points_dict[fantasy_player_id]["points"] += player_result["points"]
