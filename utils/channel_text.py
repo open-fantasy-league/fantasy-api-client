@@ -3,6 +3,10 @@ import pprint
 from utils.dota_scoring import scoring
 
 SCORING_TEXT = pprint.pformat({s.name: s.multiplier for s in scoring}).replace("{", "").replace("}", "")
+HELP_COMMAND_TEXT = """Hi! Checkout all these lovely commands.
+
+If you need more help the help, rules, and scoring channels might be what you need!
+"""
 HELP_TEXT = """Enter our draft fantasy league with `!join`
 
 At 12PM UTC on Tuesday, you will be placed into a draft channel,

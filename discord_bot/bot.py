@@ -4,12 +4,13 @@ import os
 from pprint import pformat
 
 import dotenv
+from discord import PermissionOverwrite
 from discord.ext import commands
 from discord.utils import get as dget # This cant go wrong surely
 
 from data.dota_ids import FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, FANTASY_USER_LEADERBOARD_ID
 from discord_bot.listener import PlayerHandler, FantasyHandler, LeaderboardHandler
-from utils.channel_text import HELP_TEXT
+from utils.channel_text import HELP_COMMAND_TEXT
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,10 +18,14 @@ logger = logging.getLogger(__name__)
 dotenv.load_dotenv()
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+# TODO league_id <-> guild_id
+GUILD_ID = os.getenv('GUILD_ID')
+DEV = True if os.getenv('DEV') else False
 COMMAND_PREFIX = '!'
-# TODO @ThePianoDentist
-HELP_COMMAND_TEXT = HELP_TEXT
 
+if GUILD_ID is None:
+    print("Need a giuld id you berk")
+    exit()
 if not BOT_TOKEN:
     print('No bot token found, check .env')
     exit()
@@ -77,24 +82,25 @@ class FantasyBot(commands.Bot):
         made yet...
         """
         logger.info("FantasyBot: on init leaderboards enter")
-        for guild in self.guilds:
-            new_leaderboard = new_pro_leaderboard = None
-            for leaderboard in leaderboards:
-                if leaderboard["league_id"] == FANTASY_LEAGUE_ID:
-                    if leaderboard["leaderboard_id"] == FANTASY_USER_LEADERBOARD_ID:
-                        new_leaderboard = leaderboard
-                    elif leaderboard["leaderboard_id"] == FANTASY_PLAYER_LEADERBOARD_ID:
-                        new_pro_leaderboard = leaderboard
-            if new_leaderboard is None or new_pro_leaderboard is None:
-                logger.error(f'FantasyBot:on_init_leaderboards: failed to find leaderboards')
-                return
-            leaderboard_channel = dget(guild.channels, name="leaderboard")
-            pro_leaderboard_channel = dget(guild.channels, name="pro-leaderboard")
-            if leaderboard_channel is None or pro_leaderboard_channel is None:
-                logger.error('FantasyBot:on_init_leaderboards: failed to find leaderboard channels')
-                return
-            await leaderboard_channel.send(new_leaderboard["name"])
-            await pro_leaderboard_channel.send(new_pro_leaderboard["name"])
+        # for guild in self.guilds: # TODO
+        guild = self.get_guild(GUILD_ID)
+        new_leaderboard = new_pro_leaderboard = None
+        for leaderboard in leaderboards:
+            if leaderboard["league_id"] == FANTASY_LEAGUE_ID:
+                if leaderboard["leaderboard_id"] == FANTASY_USER_LEADERBOARD_ID:
+                    new_leaderboard = leaderboard
+                elif leaderboard["leaderboard_id"] == FANTASY_PLAYER_LEADERBOARD_ID:
+                    new_pro_leaderboard = leaderboard
+        if new_leaderboard is None or new_pro_leaderboard is None:
+            logger.error(f'FantasyBot:on_init_leaderboards: failed to find leaderboards')
+            return
+        leaderboard_channel = dget(guild.channels, name="leaderboard")
+        pro_leaderboard_channel = dget(guild.channels, name="pro-leaderboard")
+        if leaderboard_channel is None or pro_leaderboard_channel is None:
+            logger.error('FantasyBot:on_init_leaderboards: failed to find leaderboard channels')
+            return
+        await leaderboard_channel.send(new_leaderboard["name"])
+        await pro_leaderboard_channel.send(new_pro_leaderboard["name"])
 
     def on_update_leaderboards(self, leaderboards):
         logger.info("FantasyBot: on update leaderboards enter")
@@ -148,8 +154,36 @@ class FantasyBot(commands.Bot):
         """
         logger.info("fantasy bot on init draft")
 
-    def on_new_draft(self, draft):
-        logger.info("fantasy bot on new draft")
+    async def on_new_draft(self, drafts):
+        """Create channels for drafts and add correct users
+
+        if need to keep track of discord channel id -> draft id use 
+        send_update_drafts when know the channel ids. 
+        """
+        logger.info("FantasyBot: on new draft")
+        # for guild in self.guilds: # TODO
+        guild = self.get_guild(GUILD_ID)
+        if guild is None:
+            logger.error(f'FantasyBot:on_new_draft: cant find guild with id {GUILD_ID}')
+            return
+        for draft in drafts:
+            logger.info(f'FantasyBot:on_new_draft: handling draft {draft["draft_id"]}')
+            if draft['league_id'] != FANTASY_LEAGUE_ID:
+                logger.error(f'FantasyBot:on_new_draft: unexpected league id {draft["league_id"]}')
+                return
+            overwrites = {guild.default_role: PermissionOverwrite(read_messages=False)}
+            for team_draft in draft["team_drafts"]:
+                member = guild.get_member(team_draft["meta"]["discord_id"])
+                if member is None:
+                    logger.error(f'FantasyBot:on_new_draft: failed to find member')
+                    # return
+                    continue
+                overwrites[member] = PermissionOverwrite(read_messages=True)
+            category = dget(guild.categories, name="Fantasy Dota") # TODO not hardcode stuff
+            logger.info(f'FantasyBot:on_new_draft: creating new channel for draft {draft["draft_id"]}')
+            new_channel = await guild.create_text_channel(f'Draft_{draft["draft_id"]}', overwrites=overwrites)
+            await new_channel.send(f'Insert welcome message here greeting our draftees')
+
 
     def on_new_pick(self, pick):
         logger.info("fantasy bot on new draft")
@@ -190,11 +224,14 @@ bot = FantasyBot(command_prefix=COMMAND_PREFIX, case_insensitive=True,
 #asyncio.run(bot.connect_clients())
 
 @bot.command()
+@commands.has_role('admin')
 async def reload(ctx):
     # TODO call on_ready stuff so cogs get events like they bot had just started?
     bot.reload_extension('fantasydota')
-    bot.reload_extension('dev')
+    if DEV:
+        bot.reload_extension('dev')
 
 bot.load_extension('fantasydota')
-bot.load_extension('dev')
+if DEV:
+    bot.load_extension('dev')
 bot.run(BOT_TOKEN)

@@ -146,7 +146,8 @@ class Dev(commands.Cog):
     
     @commands.command()
     async def info(self, ctx):
-        await ctx.send((ctx.author.name, ctx.author.discriminator, ctx.author.id))
+        # await ctx.send((ctx.author.name, ctx.author.discriminator, ctx.author.id))
+        await ctx.send((ctx.guild.id))
 
     # @commands.command()
     # async def echo(self, ctx, *, s):

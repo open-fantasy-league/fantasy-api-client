@@ -151,7 +151,7 @@ class FantasyHandler:
         logger.info(f"FantasyHandler received {len(self.users)} users")
         logger.debug(f'FantasyHandler users received: {pformat(self.users)}')
         self.discord_user_id_to_fantasy_id = {u.meta["discord_id"]: u.external_user_id for u in self.users.values()}
-        self.league = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"][0]
+        self.league = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"][0]  # TODO breaks if no leagues
         self.user_id_to_team = {t["external_user_id"]: FantasyTeam(**t) for t in self.league["fantasy_teams"]}
 
         drafts_resp = await self.client.send_sub_drafts(SubDraft(all=True))
@@ -239,13 +239,15 @@ class FantasyHandler:
             logger.info(f"Fantasy received new msg: {new_msg['message_type']}")
             logger.debug(f"Full message {pformat(new_msg)}")
             if new_msg["message_type"] == "draft":
-                await self.new_draft_callback(new_msg)
+                new_drafts = await self.on_new_draft(new_msg)
+                await new_draft_callback(new_drafts)
             elif new_msg["message_type"] == "pick":
                 await self.new_pick_callback(new_msg, player_handler)
             # elif new_msg["message_type"] == "user":
             #     update_users_callback(new_msg)
 
-    async def new_draft_callback(self, msg):
+    async def on_new_draft(self, msg):
+        new_drafts = []
         for draft in msg["data"]:
             if draft["draft_id"] in self.drafts:
                 logger.warning(f'Update for a draft that we already knew about {draft["draft_id"]}')
@@ -258,7 +260,8 @@ class FantasyHandler:
             # so it's correct to replace it.
             for team in draft["team_drafts"]:
                 self.team_id_to_draft_id[team["fantasy_team_id"]] = draft["draft_id"]
-
+            new_drafts.append(draft)
+        return new_drafts
             # TODO CT create channel for drafting, and potentially delete old channel if we overwrote
             # (On day 2 the users get mixed up, dont draft against same people, so cant keep same channels)
 
