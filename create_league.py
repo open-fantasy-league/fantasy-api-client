@@ -142,7 +142,7 @@ async def create_league(
 
 if __name__ == "__main__":
     period_starts = [
-        datetime.datetime(2020, 6, 9, hour=14, tzinfo=datetime.timezone.utc),
+        #datetime.datetime(2020, 6, 9, hour=14, tzinfo=datetime.timezone.utc),
         datetime.datetime(2020, 6, 10, hour=14, tzinfo=datetime.timezone.utc),
         datetime.datetime(2020, 6, 11, hour=14, tzinfo=datetime.timezone.utc),
         datetime.datetime(2020, 6, 12, hour=14, tzinfo=datetime.timezone.utc),
@@ -153,6 +153,6 @@ if __name__ == "__main__":
         11979, 'Blast Bounty Hunt',
         period_starts, draft_lockdown_before_period=datetime.timedelta(hours=3),
         #period_starts, draft_lockdown_before_period=datetime.timedelta(hours=9001),
-        draft_start_before_period=datetime.timedelta(hours=1), num_fake_users=3,
+        draft_start_before_period=datetime.timedelta(hours=1), num_fake_users=1,
         fake_leaderboards=True
     ))

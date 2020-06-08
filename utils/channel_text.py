@@ -21,7 +21,7 @@ Your players will earn points for every match they play in (fingers crossed for 
 with the final day being worth double.
                
 If you cannot make it to the draft time, you can preset a draft preference by messaging Mr. Robot:
-`!draft order puppey micke s4 zai miracle nikobaby`
+`!order puppey micke s4 zai miracle nikobaby`
 
 and the server will pick your favourites (left to right) for you,
 (make sure to set more than 5, in-case someone else drafts one of your preferences).
@@ -33,11 +33,10 @@ Any problems or questions contact admin `ThePianoDentist`, I will be around 11am
 Good luck!
 """
 RULES_TEXT = """
-Maximum of 2 players from the same team.
+Maximum of **2** players from the same team.
 
-1 offlaner, 2 supports, 2 cores.
-(Each draft has correct number of users so that everyone should get 1 offlaner, 2 supports, 2 cores).
+**1 offlaner, 2 supports, 2 cores**.
 
-If you do not pick before your draft-time is up, it will auto-pick from your preset `!draft order`.
+If you do not pick before your draft-time is up, it will auto-pick from your preset `!order`.
 If you do not have one, it will select a random player for you.    
 """

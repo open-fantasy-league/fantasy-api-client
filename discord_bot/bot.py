@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from collections import namedtuple
 from pprint import pformat
 
 import dotenv
@@ -200,14 +201,15 @@ class FantasyBot(commands.Bot):
         if guild is None:
             logger.error(f'FantasyBot:on_new_pick: cant find guild with id {GUILD_ID}')
             return
-        member = guild.get_member(user.meta["discord_id"])
+        # TODO uncomment for prod
+        Dummy = namedtuple("Dummy", "name")
+        member = guild.get_member(user.meta["discord_id"]) or Dummy("tpain0")
         channel = dget(guild.channels, name=f'draft {draft_id}')
         if member is None or channel is None:
             logger.error("FantasyBot:on_new_pick: failed to find member or draft channel")
             return
         await channel.send(f'{member.name} just picked {playername}')
         await channel.send(self.fantasy_handler.future_draft_choices(draft_id))
-
 
     async def on_command_error(self, ctx, error):
         """An error handler that is called when an error is raised inside a command either through user input error, check failure, or an error in your own code.

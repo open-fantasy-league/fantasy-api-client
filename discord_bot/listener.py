@@ -141,7 +141,6 @@ class FantasyHandler:
         self.draft_ids_to_channel_ids = {}
         self.channel_ids_to_draft_ids = {}
         self.draft_choices = None
-        self.pick_timings_by_username = {}
         self.draft_players_picked = {}
 
     async def start(self):
@@ -179,6 +178,10 @@ class FantasyHandler:
         for draft in self.drafts.values():
             self.draft_ids_to_channel_ids[draft["draft_id"]] = draft["meta"].get("channel_id")
             self.channel_ids_to_draft_ids[draft["meta"].get("channel_id")] = draft["draft_id"]
+
+            self.draft_players_picked[draft["draft_id"]] = {
+                pick["player_id"] for td in draft["team_drafts"] for pick in td["active_picks"]
+            }
 
         self.draft_choices = {
             d["draft_id"]: self.sorted_draft_choices(d) for d in self.drafts.values()

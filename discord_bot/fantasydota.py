@@ -240,6 +240,7 @@ class FantasyDota(commands.Cog):
                     return await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, filter_first=False))
                 else:
                     return await ctx.send(f'Invalid pick. Select a different player. See !players')
+            self.fantasy_handler.draft_players_picked[draft_id].add(player_id)
             await ctx.send(f'{ctx.author.name} picked {player}')
             await ctx.send(self.fantasy_handler.future_draft_choices(draft_id))
         except Exception:
@@ -250,7 +251,7 @@ class FantasyDota(commands.Cog):
     @commands.dm_only()
     async def order(self, ctx, *args):
         """Preset draft preferences for if you miss draft, or a pick.
-        I.e. **!draft order micke w33 s4 **
+        I.e. **!order micke w33 s4 **
         """
         # Can do this if there is a particular reason for wanting csv
         # order(self, ctx, *, heros) will return heros as whatever is typed
