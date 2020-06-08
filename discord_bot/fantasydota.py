@@ -188,9 +188,7 @@ class FantasyDota(commands.Cog):
         """
         printy = ""
         if is_draft_channel(ctx.channel):
-            # should use draft_ids_to_channel_ids or something but fuck it for now
-            # draft channels atm are of the form: 'draft-{draft["draft_id"]}' so [6:] gives id
-            draft_id = ctx.channel.name[6:]
+            draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
             already_picked = self.fantasy_handler.draft_players_picked[draft_id]
             for team in self.player_handler.teams_and_players:
                 players_left = [p for p in team["players"] if p["player_id"] not in already_picked]
