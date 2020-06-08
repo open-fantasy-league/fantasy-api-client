@@ -251,13 +251,23 @@ class FantasyDota(commands.Cog):
         else:
             await ctx.send(f'Provide a space separated list. I.e. Ex. order! puppey fng zai micke')
 
-    @draft.command()
+
+    @commands.group()
     @commands.has_role("admin")
-    async def tidy(self, ctx):
-        # """Delete finished draft channels
-        #
-        # TODO Only a temporary way to do things. Should handle better.
-        # """
+    async def admin(self, ctx):
+        """Important admin stuff"""
+        # Some admin commands. They all use same confirm flag. Pretty hack way, sue me...
+        # TOMAYBEDO
+        # - move confirm stuff into top level, store last command
+        if ctx.invoked_subcommand is None:
+            await ctx.send("Admin what?")
+
+    @admin.command(name="draft")
+    async def clear_draft_channels(self, ctx):
+        """Delete finished draft channels
+
+        TODO Only a temporary way to do things. Should handle better.
+        """
         if not self.confirm_flag:
             await ctx.send("Are you sure? (type command again to confirm)")
             self.confirm_flag = True
@@ -266,6 +276,20 @@ class FantasyDota(commands.Cog):
         for channel in ctx.guild.channels:
             if channel.name.startswith("draft"):
                 await channel.delete()
+        self.confirm_flag = False
+
+    @admin.command(name="nuke")
+    async def delete_fantasydota_channels(self, ctx):
+        """Delete all channels"""
+        if not self.confirm_flag:
+            await ctx.send("Are you sure? (type command again to confirm)")
+            self.confirm_flag = True
+            return
+        category = dget(ctx.guild.categories, name=CATEGORY_NAME)
+        for channel in category.channels:
+            await channel.delete()
+        await category.delete()
+        await ctx.send("Finished cleaning. Bery nice.")
         self.confirm_flag = False
                     
 
