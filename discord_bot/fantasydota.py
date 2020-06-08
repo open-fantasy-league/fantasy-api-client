@@ -183,13 +183,24 @@ class FantasyDota(commands.Cog):
     @commands.command()
     async def players(self, ctx):
         """Print out available players to pick from.
+
         If called from the draft channel, shows only unpicked players left.
         """
-        # TODO CT if this is a draft channel, should filter out already picked players if possible
         printy = ""
-        for team in self.player_handler.teams_and_players:
-            print(team)
-            printy += f'**{team["names"][0]["name"]}**:  {", ".join(p["player"]["names"][0]["name"] for p in team["players"])}\n\n'
+        if is_draft_channel(ctx.channel):
+            # should use draft_ids_to_channel_ids or something but fuck it for now
+            # draft channels atm are of the form: 'draft-{draft["draft_id"]}' so [6:] gives id
+            draft_id = ctx.channel.name[6:]
+            already_picked = self.fantasy_handler.draft_players_picked[draft_id]
+            for team in self.player_handler.teams_and_players:
+                players_left = [p for p in team["players"] if p["player_id"] not in already_picked]
+                if players_left:
+                    printy += f'**{team["names"][0]["name"]}**:  {", ".join(p["player"]["names"][0]["name"] for p in players_left)}\n\n'
+        else:
+            for team in self.player_handler.teams_and_players:
+                # print(team)
+                logger.error(pformat(team))
+                printy += f'**{team["names"][0]["name"]}**:  {", ".join(p["player"]["names"][0]["name"] for p in team["players"])}\n\n'
         await ctx.send(printy)
 
     # @commands.group()
@@ -296,7 +307,7 @@ class FantasyDota(commands.Cog):
             return
         logger.info(f'{ctx.author} tidied up the draft channels')
         for channel in ctx.guild.channels:
-            if channel.name.startswith("draft"):
+            if is_draft_channel(channel):
                 await channel.delete()
         self.confirm_flag = False
 
@@ -313,7 +324,10 @@ class FantasyDota(commands.Cog):
         await category.delete()
         await ctx.send("Finished cleaning. Bery nice.")
         self.confirm_flag = False
-                    
+    
+def is_draft_channel(channel):
+    """Why do I exist?"""
+    return channel.name.startswith("draft")
 
 
 

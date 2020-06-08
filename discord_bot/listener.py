@@ -141,6 +141,8 @@ class FantasyHandler:
         self.draft_ids_to_channel_ids = {}
         self.channel_ids_to_draft_ids = {}
         self.draft_choices = None
+        self.pick_timings_by_username = {}
+        self.draft_players_picked = {}
 
     async def start(self):
         """
@@ -318,18 +320,20 @@ class FantasyHandler:
     async def on_new_draft(self, msg):
         new_drafts = []
         for draft in msg["data"]:
-            if draft["draft_id"] in self.drafts:
-                logger.warning(f'Update for a draft that we already knew about {draft["draft_id"]}')
+            draft_id = draft["draft_id"]
+            if draft_id in self.drafts:
+                logger.warning(f'Update for a draft that we already knew about {draft_id}')
                 continue
 
             logger.info("Preparing new draft state/channel")
-            self.drafts[draft["draft_id"]] = draft
-            self.draft_choices[draft["draft_id"]] = self.sorted_draft_choices(draft)
+            self.drafts[draft_id] = draft
+            self.draft_choices[draft_id] = self.sorted_draft_choices(draft)
             # WHilst yes this is overwriting the existing value, that's what we want.
             # When the draft for day 2 is created...day 1's draft will be done and dusted,
             # so it's correct to replace it.
             for team in draft["team_drafts"]:
-                self.team_id_to_draft_id[str(team["fantasy_team_id"])] = draft["draft_id"]
+                self.team_id_to_draft_id[str(team["fantasy_team_id"])] = draft_id
+            self.draft_players_picked[draft_id] = set()
             new_drafts.append(draft)
         return new_drafts
 
@@ -340,11 +344,14 @@ class FantasyHandler:
             except KeyError as e:
                 logger.error(f'New pick callback could not find player-id {e}')
                 continue
-
             fantasy_team_id = str(pick["fantasy_team_id"])
             user = self.get_user_by_team_id(fantasy_team_id)
             draft_id = pick["draft_id"]
             logger.info(f'FantasyHandler:on_new_pick: {user.name} picked {player_name} in draft {draft_id}')
+            if self.draft_players_picked[draft_id] is None:
+                logger.error(f"FantasyHandler:on_new_pick: couldnt find players picked for draft {draft_id}")
+            else:
+                self.draft_players_picked[draft_id].add(pick["player_id"])
             return (user, draft_id, player_name)
 
 
