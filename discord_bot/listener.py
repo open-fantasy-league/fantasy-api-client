@@ -98,6 +98,7 @@ class LeaderboardHandler:
                 logger.error(f'LeaderboardHandler:listener: Unexpected message type: {new_msg["message_type"]}')
 
 
+# TODO could also listen to new match/player results so could update in chat when a match ended and points attributed.
 class PlayerHandler:
 
     def __init__(self):
@@ -242,7 +243,8 @@ class FantasyHandler:
                 new_drafts = await self.on_new_draft(new_msg)
                 await new_draft_callback(new_drafts)
             elif new_msg["message_type"] == "pick":
-                await self.new_pick_callback(new_msg, player_handler)
+                pick = await self.on_new_pick(new_msg, player_handler)
+                await new_pick_callback(pick)
             # elif new_msg["message_type"] == "user":
             #     update_users_callback(new_msg)
 
@@ -262,10 +264,8 @@ class FantasyHandler:
                 self.team_id_to_draft_id[team["fantasy_team_id"]] = draft["draft_id"]
             new_drafts.append(draft)
         return new_drafts
-            # TODO CT create channel for drafting, and potentially delete old channel if we overwrote
-            # (On day 2 the users get mixed up, dont draft against same people, so cant keep same channels)
 
-    async def new_pick_callback(self, msg, player_handler):
+    async def on_new_pick(self, msg, player_handler):
         for pick in msg["data"]:
             try:
                 player_name = player_handler.player_id_to_names[pick["player_id"]]
@@ -276,26 +276,7 @@ class FantasyHandler:
             fantasy_team_id = pick["fantasy_team_id"]
             user = self.get_user_by_team_id(fantasy_team_id)
             draft_id = pick["draft_id"]
-            print("""blah.send(f'{user.name} picked {player_name}')""")
-            # TODO CT send message in draft channel about user picking player
+            logger.info(f'FantasyHandler:on_new_pick: {user.name} picked {player_name} in draft {draft_id}')
+            return (user, draft_id, player_name)
 
 
-
-            # if draft["draft_id"] in self.drafts:
-            #     logger.warning(f'Update for a draft that we already knew about {draft["draft_id"]}')
-            # else:
-            #     self.drafts[draft["draft_id"]] = draft
-            #     # WHilst yes this is overwriting the existing value, that's what we want.
-            #     # When the draft for day 2 is created...day 1's draft will be done and dusted,
-            #     # so it's correct to replace it.
-            #     for team in draft["team_drafts"]:
-            #         self.team_id_to_draft_id[team["fantasy_team_id"]] = draft["draft_id"]
-            #     # TODO CT create channel for drafting, and potentially delete old channel if we overwrote
-            #     # (On day 2 the users get mixed up, dont draft against same people, so cant keep same channels)
-
-# TODO For now it's ok to just do a `send_get_latest_leaderboards` on every !leaderboard command,
-# However this could be cached by utilising listening to new stat-updates, to trigger a cached-leaderboard-clear.
-# async def leaderboard_listen(init_callback, update_callback):
-#     # For
-
-# TODO could also listen to new match/player results so could update in chat when a match ended and points attributed.

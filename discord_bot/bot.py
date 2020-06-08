@@ -19,13 +19,11 @@ dotenv.load_dotenv()
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 # TODO league_id <-> guild_id
-GUILD_ID = os.getenv('GUILD_ID')
+GUILD_ID = int(os.getenv('GUILD_ID'))  # will fail if not set 
+
 DEV = True if os.getenv('DEV') else False
 COMMAND_PREFIX = '!'
 
-if GUILD_ID is None:
-    print("Need a giuld id you berk")
-    exit()
 if not BOT_TOKEN:
     print('No bot token found, check .env')
     exit()
@@ -181,19 +179,25 @@ class FantasyBot(commands.Bot):
                 overwrites[member] = PermissionOverwrite(read_messages=True)
             category = dget(guild.categories, name="Fantasy Dota") # TODO not hardcode stuff
             logger.info(f'FantasyBot:on_new_draft: creating new channel for draft {draft["draft_id"]}')
-            new_channel = await guild.create_text_channel(f'Draft_{draft["draft_id"]}', overwrites=overwrites)
+            new_channel = await guild.create_text_channel(f'draft {draft["draft_id"]}', overwrites=overwrites)
             await new_channel.send(f'Insert welcome message here greeting our draftees')
 
 
-    def on_new_pick(self, pick):
-        logger.info("fantasy bot on new draft")
+    async def on_new_pick(self, pick):
+        logger.info("FantasyBot:on_new_pick: enter")
+        user, draft_id, playername = pick
+        guild = self.get_guild(GUILD_ID)
+        if guild is None:
+            logger.error(f'FantasyBot:on_new_pick: cant find guild with id {GUILD_ID}')
+            return
+        member = guild.get_member(user["meta"]["discord_id"])
+        channel = dget(guild.channels, name=f'draft {draft_id}')
+        if member is None or channel is None:
+            logger.error("FantasyBot:on_new_pick: failed to find member or draft channel")
+            return
+        await channel.send(f'{member.name} just picked {playername}')
 
-    # @JK listeners youll want for logging
-    # Context object docs - https://discordpy.readthedocs.io/en/latest/ext/commands/api.html#context
 
-    # NB these 3 are all listeners specifcaly for command extensions.
-    # You can also use all the other listenrs defined for client
-    # https://discordpy.readthedocs.io/en/latest/api.html#event-reference
     async def on_command_error(self, ctx, error):
         """An error handler that is called when an error is raised inside a command either through user input error, check failure, or an error in your own code.
 
@@ -227,6 +231,7 @@ bot = FantasyBot(command_prefix=COMMAND_PREFIX, case_insensitive=True,
 @commands.has_role('admin')
 async def reload(ctx):
     # TODO call on_ready stuff so cogs get events like they bot had just started?
+    # This would mean could get init_listener stuff out of bot and into fantasy
     bot.reload_extension('fantasydota')
     if DEV:
         bot.reload_extension('dev')

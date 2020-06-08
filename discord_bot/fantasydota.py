@@ -34,6 +34,7 @@ class FantasyDota(commands.Cog):
     """An awesome fantasy dota 2 dota league"""
     def __init__(self, bot):
         self.bot = bot
+        self.confirm_flag = False
 
     @property
     def fantasy_handler(self):
@@ -236,6 +237,25 @@ class FantasyDota(commands.Cog):
                 await ctx.send(f'Something went horribly wrong. Please DM a mod to investigate')
         else:
             await ctx.send(f'Provide a space separated list. I.e. Ex. order! puppey fng zai micke')
+
+    @draft.command()
+    @commands.has_role("admin")
+    async def tidy(self, ctx):
+        """Delete finished draft channels
+
+        TODO Only a temporary way to do things. Should handle better.
+        """
+        if not self.confirm_flag:
+            await ctx.send("Are you sure? (type command again to confirm)")
+            self.confirm_flag = True
+            return
+        logger.info(f'{ctx.author} tidied up the draft channels')
+        for channel in ctx.guild.channels:
+            if channel.name.startswith("draft"):
+                await channel.delete()
+        self.confirm_flag = False
+                    
+
 
 
 def setup(bot):
