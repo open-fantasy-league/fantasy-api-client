@@ -201,7 +201,6 @@ class FantasyDota(commands.Cog):
             return await ctx.send(f'Invalid pick {player}. `!players ` to see available picks')
         try:
             fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id).fantasy_team_id
-            # TODO CT This needs to not be None
             draft_id = None
             for k, v in self.fantasy_handler.draft_ids_to_channel_ids.items():
                 if v == ctx.channel.id:

@@ -9,8 +9,9 @@ If you need more help the help, rules, and scoring channels might be what you ne
 """
 HELP_TEXT = """Enter our draft fantasy league with `!join`
 
-At 12PM UTC on Tuesday, you will be placed into a draft channel,
+Tuesday morning, you will be placed into a draft channel,
 where you and other users will take it in turns to pick pro-players with a __**30 second**__ time-limit.
+The draft starts at 13PM UTC.
 
 See the list of pro-players with `!players`.
                
