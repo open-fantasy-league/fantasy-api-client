@@ -333,6 +333,7 @@ class FantasyHandler:
             # so it's correct to replace it.
             for team in draft["team_drafts"]:
                 self.team_id_to_draft_id[str(team["fantasy_team_id"])] = draft_id
+            # TODO populate this on_init_draft for if bot crash
             self.draft_players_picked[draft_id] = set()
             new_drafts.append(draft)
         return new_drafts

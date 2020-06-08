@@ -189,9 +189,10 @@ class FantasyDota(commands.Cog):
         printy = ""
         if is_draft_channel(ctx.channel):
             draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
+            # @WEAK this will fail if bot restarts mid draft
             already_picked = self.fantasy_handler.draft_players_picked[draft_id]
             for team in self.player_handler.teams_and_players:
-                players_left = [p for p in team["players"] if p["player_id"] not in already_picked]
+                players_left = [tp for tp in team["players"] if tp["player"]["player_id"] not in already_picked]
                 if players_left:
                     printy += f'**{team["names"][0]["name"]}**:  {", ".join(p["player"]["names"][0]["name"] for p in players_left)}\n\n'
         else:
