@@ -152,8 +152,13 @@ class FantasyHandler:
         logger.info(f"FantasyHandler received {len(self.users)} users")
         logger.debug(f'FantasyHandler users received: {pformat(self.users)}')
         self.discord_user_id_to_fantasy_id = {u.meta["discord_id"]: u.external_user_id for u in self.users.values()}
-        self.league = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"][0]  # TODO breaks if no leagues
-        self.user_id_to_team = {t["external_user_id"]: FantasyTeam(**t) for t in self.league["fantasy_teams"]}
+        league_resp = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"]
+        if league_resp:
+            self.league = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"][0]  # TODO breaks if no leagues
+            self.user_id_to_team = {t["external_user_id"]: FantasyTeam(**t) for t in self.league["fantasy_teams"]}
+        else:
+            self.user_id_to_team = {}
+            self.league = None
 
         drafts_resp = await self.client.send_sub_drafts(SubDraft(all=True))
         self.drafts = {draft["draft_id"]: draft for draft in drafts_resp["data"]}

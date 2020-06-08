@@ -7,19 +7,18 @@ from pprint import pformat
 
 from discord import PermissionOverwrite
 from discord.ext import commands
-from discord.utils import get as dget # This cant go wrong surely
+from discord.utils import get as dget  # This cant go wrong surely
 
 
 from messages.fantasy_msgs import DraftQueue, ExternalUser, FantasyTeam, DraftPick
 from utils.channel_text import SCORING_TEXT, HELP_TEXT, RULES_TEXT
 from utils.errors import ApiException
 from utils.utils import simplified_str
-from data.dota_ids import FANTASY_LEAGUE_ID # TODO real fantasy id
+from data.dota_ids import FANTASY_LEAGUE_ID
 
 
 logger = logging.getLogger(__name__)
 
-# TODO @ThePianoDentist
 CATEGORY_NAME = 'Fantasy Dota'
 HELP_CHANNELS = {
     'Help': HELP_TEXT,
@@ -140,17 +139,18 @@ class FantasyDota(commands.Cog):
         # TODO
         await ctx.send(f'{ctx.author.name} wants to see their team right about now')
 
+    # TODO CT display all teams (maybe a read-only channel rather than commands)
+
     @commands.command()
     async def join(self, ctx):
         """Join the league!
-        
-        TODO:
-        - get proper fantasy id from somewhere
-        - other error handling?
-        - move this stuff into listener? or somewhere more sensible
-        @IMPROVE
-        - better api call to check user exists rather than keeping state
         """
+        # TODO:
+        # - get proper fantasy id from somewhere
+        # - other error handling?
+        # - move this stuff into listener? or somewhere more sensible
+        # @IMPROVE
+        # - better api call to check user exists rather than keeping state
         new_username = f'{ctx.author.name}#{ctx.author.discriminator}'  # do we want to use discriminator?
         new_user_id = ctx.author.id  # should this be string? (doesnt matter what type)
         if new_user_id in self.fantasy_handler.discord_user_id_to_fantasy_id:
@@ -167,25 +167,25 @@ class FantasyDota(commands.Cog):
 
     @commands.command()
     async def players(self, ctx):
-        """Print out players to pick from
+        """Print out available players to pick from
         """
-        players = self.player_handler.players
+        # TODO CT if this is a draft channel, should filter out already picked players if possible
         printy = ""
         for team in self.player_handler.teams_and_players:
             print(team)
-            printy += f'"{team["names"][0]["name"]}":  {", ".join(p["player"]["names"][0]["name"] for p in team["players"])}\n\n'
+            printy += f'**{team["names"][0]["name"]}**:  {", ".join(p["player"]["names"][0]["name"] for p in team["players"])}\n\n'
         await ctx.send(printy)
 
     @commands.group()
     async def draft(self, ctx):
-        """Commands to use while in a draft"""
+        """Commands to use in a draft"""
         if ctx.invoked_subcommand is None:
             # just print the info
             await self.info(ctx)
     
     @draft.command()
     async def info(self, ctx):
-        """What info do I show?"""
+        """Shows draft ordering and time until next pick"""
         # TODO show next drafters, and when user up next.
         await ctx.send(f"next drafters bla bla\n {ctx.author.name} you pick in 2 seconds")
 
@@ -199,6 +199,7 @@ class FantasyDota(commands.Cog):
         except KeyError:
             return await ctx.send(f'Invalid pick {player}. `!players ` to see available picks')
         fantasy_team_id = self.fantasy_handler.get_user_team(ctx.author.id).fantasy_team_id
+        # TODO CT This needs to not be None
         draft_id = None
         await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
         await ctx.send(f'{ctx.author.name} picked {player}')
@@ -206,7 +207,9 @@ class FantasyDota(commands.Cog):
     @draft.command()
     @commands.dm_only()
     async def order(self, ctx, *args):
-        """Set your draft queue order for automatic picks"""
+        """Preset draft preferences for if you miss draft, or a pick.
+        I.e. **!draft order micke w33 s4 **
+        """
         # Can do this if there is a particular reason for wanting csv
         # order(self, ctx, *, heros) will return heros as whatever is typed
         # after "order"
@@ -241,10 +244,10 @@ class FantasyDota(commands.Cog):
     @draft.command()
     @commands.has_role("admin")
     async def tidy(self, ctx):
-        """Delete finished draft channels
-
-        TODO Only a temporary way to do things. Should handle better.
-        """
+        # """Delete finished draft channels
+        #
+        # TODO Only a temporary way to do things. Should handle better.
+        # """
         if not self.confirm_flag:
             await ctx.send("Are you sure? (type command again to confirm)")
             self.confirm_flag = True

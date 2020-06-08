@@ -19,7 +19,7 @@ Each day of the tournament will have a separate draft, always the morning before
 Your players will earn points for every match they play in (fingers crossed for best-of-3's),
 with the final day being worth double.
                
-If you cannot make it to the draft time, you can preset a draft preference like so:
+If you cannot make it to the draft time, you can preset a draft preference by messaging Mr. Robot:
 `!draft order puppey micke s4 zai miracle nikobaby`
 
 and the server will pick your favourites (left to right) for you,
