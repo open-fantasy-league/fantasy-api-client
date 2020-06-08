@@ -153,6 +153,6 @@ if __name__ == "__main__":
         11979, 'Blast Bounty Hunt',
         period_starts, draft_lockdown_before_period=datetime.timedelta(hours=3),
         #period_starts, draft_lockdown_before_period=datetime.timedelta(hours=9001),
-        draft_start_before_period=datetime.timedelta(hours=1), fake_users=True,
+        draft_start_before_period=datetime.timedelta(hours=1), fake_users=False,
         fake_leaderboards=True
     ))
