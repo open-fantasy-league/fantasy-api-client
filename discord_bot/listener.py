@@ -359,5 +359,3 @@ class FantasyHandler:
             else:
                 self.draft_players_picked[draft_id].add(pick["player_id"])
             return (user, draft_id, player_name)
-
-

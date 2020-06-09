@@ -29,6 +29,17 @@ PRIVATE_CHANNELS = ['Leaderboard', 'Pro Leaderboard']
 PUBLIC_CHANNELS = ['Chat']
 
 
+def is_draft_channel(channel):
+    """Why do I exist?"""
+    return channel.name.startswith("draft")
+
+
+def is_not_draft():
+    async def predicate(ctx):
+        return not is_draft_channel(ctx.channel)
+    return commands.check(predicate)
+
+
 class FantasyDota(commands.Cog):
     """An awesome fantasy dota 2 dota league"""
     def __init__(self, bot):
@@ -141,7 +152,10 @@ class FantasyDota(commands.Cog):
 
     @commands.command()
     async def teams(self, ctx):
-        """Display all teams. If used in draft channel shows only drafters teams."""
+        """Display all teams.
+        
+        If used in draft channel shows only drafters teams.
+        """
         # TODO
         draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
         teams = {}
@@ -157,6 +171,7 @@ class FantasyDota(commands.Cog):
         await ctx.send(printy)
 
     @commands.group()
+    @is_not_draft()
     async def show(self, ctx):
         """Display various information"""
         if ctx.invoked_subcommand is None:
@@ -172,11 +187,13 @@ class FantasyDota(commands.Cog):
     async def team(self, ctx):
         """Display your team"""
         # TODO
-        await ctx.send(f'{ctx.author.name} wants to see their team right about now')
+        jk = dget(ctx.guild.members, name="ThePianoDentist")
+        await ctx.send(f'Hey {jk.mention}, {ctx.author.name} wants to see their team right about now!')
 
     # TODO CT display all teams (maybe a read-only channel rather than commands)
 
     @commands.command()
+    @is_not_draft()
     async def join(self, ctx):
         """Join the league!
         """
@@ -222,27 +239,36 @@ class FantasyDota(commands.Cog):
                 printy += f'**{team["names"][0]["name"]}**:  {", ".join(p["player"]["names"][0]["name"] for p in team["players"])}\n\n'
         await ctx.send(printy)
 
-    # @commands.group()
-    # async def draft(self, ctx):
-    #     """Commands to use in a draft"""
-    #     if ctx.invoked_subcommand is None:
-    #         # just print the info
-    #         await self.info(ctx)
-
     @commands.command()
     async def info(self, ctx):
-        """Shows draft ordering and deadlines for picking"""
+        """Shows draft ordering and deadlines for picking.
+        
+        NB: Only has effect in a draft channel
+        """
+        # TOMAYBEDO factor this draft channel check
+        if not is_draft_channel(ctx.channel):
+            await ctx.send(f'Hey {ctx.author.name}, try this command from a draft channel!')
+            return
         draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
         if draft_id is None:
             return await ctx.send(f'Please use `!pick` command in your draft channel')
         await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, filter_first=False, limit=9))
+    @is_not_draft()
 
     @commands.command()
     @commands.guild_only() # TODO make usable in draft channel. maybe make only visible their too?
     async def pick(self, ctx, player):
-        """Make your pick"""
-        # TODO
+        """Make a pick when in draft
+        
+        NB: Only has effect in a draft channel
+        """
+        # TOMAYBEDO factor this draft channel check
+        if not is_draft_channel(ctx.channel):
+            await ctx.send(f'Hey {ctx.author.name}, try this command from a draft channel!')
+            return
         try:
+            # TOMAYBEDO use discord "converters" so player paramter is an object that does
+            # this loook up automagically
             player_id = self.player_handler.simplified_player_names_to_id[simplified_str(player)]
         except KeyError:
             return await ctx.send(f'Invalid pick {player}. `!players ` to see available picks')
@@ -344,11 +370,6 @@ class FantasyDota(commands.Cog):
         await category.delete()
         await ctx.send("Finished cleaning. Bery nice.")
         self.confirm_flag = False
-    
-def is_draft_channel(channel):
-    """Why do I exist?"""
-    return channel.name.startswith("draft")
-
 
 
 def setup(bot):
