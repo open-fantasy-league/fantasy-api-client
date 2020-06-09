@@ -61,9 +61,8 @@ class FantasyDota(commands.Cog):
             for channel_id, draft_id in self.fantasy_handler.channel_ids_to_draft_ids.items():
                 logger.info(f"Printing draft next user: {draft_id}")
                 channel = self.bot.get_channel(channel_id)
-                print(f"channel: {channel}")
                 if channel:
-                    future_ = self.fantasy_handler.future_draft_choices(draft_id, filter_first=False, limit=1)
+                    future_ = self.fantasy_handler.future_draft_choices(draft_id, filter_first=False, limit=1, and_time=True)
                     if future_:
                         await channel.send(future_)
 
