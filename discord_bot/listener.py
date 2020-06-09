@@ -208,9 +208,9 @@ class FantasyHandler:
         time_until_end = choice[1] - now
         if time_until_start < ZERO_TIME_DELTA:
             # have to recalc otherwise the minus one comes out weird
-            return f"{user_and_choice['username']} {time_until_end.seconds}s left"
+            return f"**{user_and_choice['username']}** **{time_until_end.seconds}s** left"
         else:
-            return f"{user_and_choice['username']} can pick in {time_until_start.seconds}s"
+            return f"**{user_and_choice['username']}** can pick in **{time_until_start.seconds}**s"
 
     def future_draft_choices(self, draft_id, limit=6, and_time=False):
         """
@@ -223,6 +223,7 @@ class FantasyHandler:
         choices = self.draft_choices[draft_id]
         now = datetime.datetime.now(tz=datetime.timezone.utc)
         filtered_choices = []
+        logger.warning(choices)
         for c in choices:
             if len(filtered_choices) >= limit:
                 break
@@ -230,15 +231,15 @@ class FantasyHandler:
                 if and_time:
                     filtered_choices.append(self.printable_time_until_choice(c, now))
                 else:
-                    filtered_choices.append(c["username"])
-
+                    filtered_choices.append(f'**{c["username"]}**')
+        logger.warning(f"filtered_choices: {filtered_choices}")
         if not filtered_choices:
             return ""
 
         if and_time:
-            return "**Drafter: " + ", ".join(filtered_choices) + "**"
+            return "Drafter: " + ", ".join(filtered_choices)
         else:
-            return "**Next:**\n" + ", ".join(filtered_choices) + "\n"
+            return "Next:\n" + ", ".join(filtered_choices) + "\n"
 
     def get_user_team(self, discord_id):
         fantasy_user_id = self.discord_user_id_to_fantasy_id[discord_id]

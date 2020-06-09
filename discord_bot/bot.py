@@ -216,7 +216,7 @@ class FantasyBot(commands.Bot):
         # logger.error(f'{member.name} just picked {playername}')
         # logger.error('\n')
         self.fantasy_handler.draft_choices[draft_id].popleft()
-        await channel.send(f'{member.name} just picked {playername}')
+        await channel.send(f'**{member.name}** just picked **{playername}**')
         await channel.send(self.fantasy_handler.future_draft_choices(draft_id, limit=1, and_time=True))
 
     async def on_command_error(self, ctx, error):

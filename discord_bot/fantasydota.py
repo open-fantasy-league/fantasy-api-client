@@ -64,7 +64,7 @@ class FantasyDota(commands.Cog):
                 if channel:
                     future_ = self.fantasy_handler.future_draft_choices(draft_id, limit=1, and_time=True)
                     if future_:
-                        await channel.send(future_)
+                        await channel.send(future_, delete_after=60)
 
     # @printer.before_loop
     # async def before_printer(self):
@@ -251,7 +251,11 @@ class FantasyDota(commands.Cog):
         draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
         if draft_id is None:
             return await ctx.send(f'Please use `!pick` command in your draft channel')
-        await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, limit=9))
+        out = self.fantasy_handler.future_draft_choices(draft_id, limit=9)
+        if out:
+            await ctx.send(out)
+        else:
+            await ctx.send("Draft finished. See teams with `!teams`")
 
     @commands.command()
     @commands.guild_only() # TODO make usable in draft channel. maybe make only visible their too?
