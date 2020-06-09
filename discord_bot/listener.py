@@ -163,9 +163,7 @@ class FantasyHandler:
         self.discord_user_id_to_fantasy_id = {u.meta["discord_id"]: u.external_user_id for u in self.users.values()}
         league_resp = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"]
         if league_resp:
-            self.league = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"][0]  # TODO breaks if no leagues
-            print('self.league["fantasy_teams"]')
-            print(self.league["fantasy_teams"])
+            self.league = (await self.client.send_sub_leagues(SubLeague(all=True)))["data"][0]
             self.user_id_to_team = {str(t["external_user_id"]): FantasyTeam(**t) for t in self.league["fantasy_teams"]}
             self.team_id_to_user_id = {t["fantasy_team_id"]: t["external_user_id"] for t in self.league["fantasy_teams"]}
         else:
@@ -189,8 +187,6 @@ class FantasyHandler:
         logger.info("FantasyHandler Loaded")
 
     def sorted_draft_choices(self, draft):
-        print(draft)
-        print([len(x["draft_choices"]) for x in draft["team_drafts"]])
         out = sorted(
                 [
                     {"username": self.users[str(t["external_user_id"])].name, "choice": [datetime.datetime.strptime(c, DATE_FMT) for c in choice["timespan"]]}
@@ -198,21 +194,20 @@ class FantasyHandler:
                 ],
                 key=lambda x: x["choice"][0]
             )
-        logger.info(f"draft {draft['draft_id']} sorted_draft_choices: {out}")
         return out
 
     @staticmethod
     def printable_time_until_choice(user_and_choice, now):
         choice = user_and_choice["choice"]
         time_until_start = choice[0] - now
+        time_until_end = choice[1] - now
         if time_until_start < ZERO_TIME_DELTA:
             # have to recalc otherwise the minus one comes out weird
-            return f"{user_and_choice['username']} {(now - choice[0]).seconds}s left"
+            return f"{user_and_choice['username']} {time_until_end.seconds}s left"
         else:
-            time_until_end = choice[1] - now
             return f"{user_and_choice['username']} can pick in {time_until_end.seconds}s"
 
-    def future_draft_choices(self, draft_id, limit=6, filter_first=True):
+    def future_draft_choices(self, draft_id, limit=6, filter_first=True, and_time=False):
         """
 
         :param draft_id:
@@ -222,13 +217,20 @@ class FantasyHandler:
         """
         choices = self.draft_choices[draft_id]
         now = datetime.datetime.now(tz=datetime.timezone.utc)
-        print("future_draft_choices")
-        print([self.printable_time_until_choice(c, now) for c in choices])
-        filtered_choices = [self.printable_time_until_choice(c, now) for c in choices if c["choice"][-1] > now][:limit]
-        print(filtered_choices)
+        filtered_choices = []
+        for c in choices:
+            if len(filtered_choices) > limit:
+                break
+            if c["choice"][-1] > now:
+                if and_time:
+                    filtered_choices.append(self.printable_time_until_choice(c, now))
+                else:
+                    filtered_choices.append(c["username"])
         if filter_first:
             filtered_choices = filtered_choices[1:]
-        return "**next picks:**\n\n> " + "\n".join(filtered_choices)
+        if not filtered_choices:
+            return ""
+        return "**next picks:**\n\n" + ", ".join(filtered_choices)
 
     def get_user_team(self, discord_id):
         fantasy_user_id = self.discord_user_id_to_fantasy_id[discord_id]

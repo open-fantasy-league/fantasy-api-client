@@ -6,7 +6,7 @@ import uuid
 from pprint import pformat
 
 from discord import PermissionOverwrite
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.utils import get as dget  # This cant go wrong surely
 
 
@@ -34,6 +34,7 @@ class FantasyDota(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.confirm_flag = False
+        self.printer.start()
 
     @property
     def fantasy_handler(self):
@@ -42,6 +43,23 @@ class FantasyDota(commands.Cog):
     @property
     def player_handler(self):
         return self.bot.player_handler
+
+    @tasks.loop(seconds=10.0)
+    async def printer(self):
+        if self.fantasy_handler:
+            for channel_id, draft_id in self.fantasy_handler.channel_ids_to_draft_ids.items():
+                logger.info(f"Printing draft next user: {draft_id}")
+                channel = self.bot.get_channel(channel_id)
+                print(f"channel: {channel}")
+                if channel:
+                    future_ = self.fantasy_handler.future_draft_choices(draft_id, filter_first=False, limit=1)
+                    if future_:
+                        await channel.send(future_)
+
+    # @printer.before_loop
+    # async def before_printer(self):
+    #     print('\n\nwaiting...\n\n')
+    #     await self.bot.wait_until_ready()
 
     # Listeners
 
@@ -126,7 +144,9 @@ class FantasyDota(commands.Cog):
         """Display all teams. If used in draft channel shows only drafters teams."""
         # TODO
         draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
-        teams = await self.fantasy_handler.client.send_get_latest_teams()
+        teams = {}
+        if self.fantasy_handler.draft_players_picked.get(draft_id):
+            teams = await self.fantasy_handler.client.send_get_latest_teams()
         team_ids_to_player_ids = teams["data"]
         printy = ""
         for team_id, player_ids in team_ids_to_player_ids.items():
@@ -208,7 +228,7 @@ class FantasyDota(commands.Cog):
     #     if ctx.invoked_subcommand is None:
     #         # just print the info
     #         await self.info(ctx)
-    
+
     @commands.command()
     async def info(self, ctx):
         """Shows draft ordering and deadlines for picking"""
