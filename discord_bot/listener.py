@@ -228,7 +228,9 @@ class FantasyHandler:
                 break
             if c["choice"][-1] > now:
                 if and_time:
-                    filtered_choices.append(self.printable_time_until_choice(c, now))
+                    # avoid spamming before draft started
+                    if (c["choice"][-1] - now).seconds > 280:
+                        filtered_choices.append(self.printable_time_until_choice(c, now))
                 else:
                     filtered_choices.append(c["username"])
 

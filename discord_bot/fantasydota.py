@@ -251,10 +251,9 @@ class FantasyDota(commands.Cog):
         draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
         if draft_id is None:
             return await ctx.send(f'Please use `!pick` command in your draft channel')
-        await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, filter_first=False, limit=9))
         await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, limit=9))
 
-    @is_not_draft()
+    #@is_not_draft()
     @commands.command()
     @commands.guild_only() # TODO make usable in draft channel. maybe make only visible their too?
     async def pick(self, ctx, player):
