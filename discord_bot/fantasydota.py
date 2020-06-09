@@ -51,7 +51,7 @@ class FantasyDota(commands.Cog):
                 logger.info(f"Printing draft next user: {draft_id}")
                 channel = self.bot.get_channel(channel_id)
                 if channel:
-                    future_ = self.fantasy_handler.future_draft_choices(draft_id, filter_first=False, limit=1, and_time=True)
+                    future_ = self.fantasy_handler.future_draft_choices(draft_id, limit=1, and_time=True)
                     if future_:
                         await channel.send(future_)
 
@@ -234,7 +234,7 @@ class FantasyDota(commands.Cog):
         draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
         if draft_id is None:
             return await ctx.send(f'Please use `!pick` command in your draft channel')
-        await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, filter_first=False, limit=9))
+        await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, limit=9))
 
     @commands.command()
     @commands.guild_only() # TODO make usable in draft channel. maybe make only visible their too?
@@ -254,12 +254,13 @@ class FantasyDota(commands.Cog):
                 await self.fantasy_handler.client.send_insert_draft_pick(DraftPick(player_id, fantasy_team_id, draft_id))
             except ApiException as e:
                 logger.info("Invalid pick: ", exc_info=True)
-                if 'NotFound' in str(e):  # so fucking hacky
+                if e.data == 'NotFound':  # so fucking hacky
                     await ctx.send(f'Not your turn {ctx.author.name}')
-                    return await ctx.send(self.fantasy_handler.future_draft_choices(draft_id, filter_first=False))
+                    return await ctx.send(self.fantasy_handler.future_draft_choices(draft_id))
                 else:
                     return await ctx.send(f'Invalid pick. Select a different player. See !players')
             self.fantasy_handler.draft_players_picked[draft_id].add(player_id)
+            self.fantasy_handler.draft_choices[draft_id].popleft()
             await ctx.send(f'{ctx.author.name} picked {player}')
             await ctx.send(self.fantasy_handler.future_draft_choices(draft_id))
         except Exception:

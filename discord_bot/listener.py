@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import uuid
+from collections import defaultdict, deque
 from pprint import pformat
 from typing import Dict, Optional, List
 
@@ -187,13 +188,17 @@ class FantasyHandler:
         logger.info("FantasyHandler Loaded")
 
     def sorted_draft_choices(self, draft):
-        out = sorted(
+        out = deque(sorted(
                 [
-                    {"username": self.users[str(t["external_user_id"])].name, "choice": [datetime.datetime.strptime(c, DATE_FMT) for c in choice["timespan"]]}
-                    for t in draft["team_drafts"] for choice in t["draft_choices"]
+                    {
+                        "username": self.users[str(t["external_user_id"])].name,
+                        "choice": [datetime.datetime.strptime(c, DATE_FMT) for c in choice["timespan"]],
+                        "pick": None
+                    }
+                    for t in draft["team_drafts"] for choice in t["draft_choices"] if choice["pick"] is None
                 ],
                 key=lambda x: x["choice"][0]
-            )
+            ))
         return out
 
     @staticmethod
@@ -205,9 +210,9 @@ class FantasyHandler:
             # have to recalc otherwise the minus one comes out weird
             return f"{user_and_choice['username']} {time_until_end.seconds}s left"
         else:
-            return f"{user_and_choice['username']} can pick in {time_until_end.seconds}s"
+            return f"{user_and_choice['username']} can pick in {time_until_start.seconds}s"
 
-    def future_draft_choices(self, draft_id, limit=6, filter_first=True, and_time=False):
+    def future_draft_choices(self, draft_id, limit=6, and_time=False):
         """
 
         :param draft_id:
@@ -226,14 +231,14 @@ class FantasyHandler:
                     filtered_choices.append(self.printable_time_until_choice(c, now))
                 else:
                     filtered_choices.append(c["username"])
-        if filter_first:
-            filtered_choices = filtered_choices[1:]
+
         if not filtered_choices:
             return ""
+
         if and_time:
             return "**Drafter: " + ", ".join(filtered_choices) + "**"
         else:
-            return "**Next:**\n\n" + ", ".join(filtered_choices)
+            return "**Next:**\n" + ", ".join(filtered_choices) + "\n"
 
     def get_user_team(self, discord_id):
         fantasy_user_id = self.discord_user_id_to_fantasy_id[discord_id]
