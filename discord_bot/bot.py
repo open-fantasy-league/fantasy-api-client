@@ -201,13 +201,20 @@ class FantasyBot(commands.Bot):
         if guild is None:
             logger.error(f'FantasyBot:on_new_pick: cant find guild with id {GUILD_ID}')
             return
-        # TODO uncomment for prod
-        Dummy = namedtuple("Dummy", "name")
-        member = guild.get_member(user.meta["discord_id"]) or Dummy("tpain0")
-        channel = dget(guild.channels, name=f'draft {draft_id}')
+        member = guild.get_member(user.meta["discord_id"])
+        if member is None and DEV:
+            Dummy = namedtuple("Dummy", "name")
+            member = Dummy("tpain0")
+        channel = guild.get_channel(self.fantasy_handler.draft_ids_to_channel_ids[draft_id])
         if member is None or channel is None:
             logger.error("FantasyBot:on_new_pick: failed to find member or draft channel")
             return
+        # logger.error('\n')
+        # logger.error(user.meta)
+        # logger.error(str(channel))
+        # logger.error(str(member))
+        # logger.error(f'{member.name} just picked {playername}')
+        # logger.error('\n')
         await channel.send(f'{member.name} just picked {playername}')
         await channel.send(self.fantasy_handler.future_draft_choices(draft_id))
 
