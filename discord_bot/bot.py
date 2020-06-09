@@ -217,7 +217,11 @@ class FantasyBot(commands.Bot):
         # logger.error('\n')
         self.fantasy_handler.draft_choices[draft_id].popleft()
         await channel.send(f'**{member.name}** just picked **{playername}**')
-        await channel.send(self.fantasy_handler.future_draft_choices(draft_id, limit=1, and_time=True))
+        out = self.fantasy_handler.future_draft_choices(draft_id, limit=1, and_time=True)
+        if out:
+            await channel.send(out)
+        else:
+            await channel.send("Draft finished")
 
     async def on_command_error(self, ctx, error):
         """An error handler that is called when an error is raised inside a command either through user input error, check failure, or an error in your own code.

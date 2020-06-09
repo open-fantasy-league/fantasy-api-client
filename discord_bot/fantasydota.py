@@ -64,7 +64,7 @@ class FantasyDota(commands.Cog):
                 if channel:
                     future_ = self.fantasy_handler.future_draft_choices(draft_id, limit=1, and_time=True)
                     if future_:
-                        await channel.send(future_, delete_after=60)
+                        await channel.send(future_, delete_after=29.9)
 
     # @printer.before_loop
     # async def before_printer(self):
@@ -291,7 +291,11 @@ class FantasyDota(commands.Cog):
             self.fantasy_handler.draft_players_picked[draft_id].add(player_id)
             self.fantasy_handler.draft_choices[draft_id].popleft()
             await ctx.send(f'{ctx.author.name} picked {player}')
-            await ctx.send(self.fantasy_handler.future_draft_choices(draft_id))
+            out = self.fantasy_handler.future_draft_choices(draft_id, limit=1, and_time=True)
+            if out:
+                await ctx.send(out)
+            else:
+                await ctx.send("Draft finished")
         except Exception:
             logger.exception("Pick error: ")
             return await ctx.send(f'Something went horribly wrong!')
