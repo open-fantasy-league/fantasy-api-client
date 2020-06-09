@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import itertools
 import logging
 import os
 import uuid
@@ -32,7 +33,7 @@ MATCH_LISTING_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchHistory
 MATCH_DETAILS_URL = "http://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/v0001?key={key}&match_id={match_id}"
 MATCH_DETAILS_OPEN_DOTA_URL = "https://api.opendota.com/api/matches/{match_id}"
 
-DOTA_TO_FANTASY_LEAGUE_IDS = {12027: FANTASY_COMPETITION_ID}
+DOTA_TO_FANTASY_LEAGUE_IDS = {11979: FANTASY_COMPETITION_ID}
 
 
 async def get_league_results(result_client, fantasy_client, leaderboard_client, league_id, tstamp_from=0):
@@ -45,14 +46,14 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
         SubTeam(toggle=True)
     ))["data"]
     DOTA_TO_FANTASY_TEAM_IDS = {t["meta"]["dota_id"]: t["team_id"] for t in fantasy_teams_and_players}
-    DOTA_TO_FANTASY_PLAYER_IDS = {p["player"]["meta"]["dota_id"]: p["team_id"] for t in fantasy_teams_and_players for p in t["players"]}
+    DOTA_TO_FANTASY_PLAYER_IDS = {p["player"]["meta"]["dota_id"]: p["player"]["player_id"] for t in fantasy_teams_and_players for p in t["players"]}
 
-    fantasy_matches = (s["matches"] for s in fantasy_competition_hierarchy[0]["series"])
+    fantasy_matches = list(itertools.chain(*[s["matches"] for s in fantasy_competition_hierarchy[0]["series"]]))
     fantasy_leagues = await fantasy_client.send_sub_leagues(
         SubLeague(all=True)
     )
     fantasy_league = next(f for f in fantasy_leagues["data"] if f["competition_id"] == fantasy_competitition_id)
-    teams = {t["fantasy_team_id"]: t for t in fantasy_league["fantasy_teams"]}
+    user_teams = (await fantasy_client.send_get_latest_teams())["data"]
     # Filter out matches that already have their results set
     existing_match_ids = (m["meta"]["dota_id"] for m in fantasy_matches if len(m["team_results"]) != 0)
     matches_to_scrape = [m['match_id'] for m in match_list if m['match_id'] not in existing_match_ids and m['start_time'] >= tstamp_from]
@@ -60,9 +61,10 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
     match_inserts = []
     series_inserts = []
     logging.info(f"matches_to_scrape: {matches_to_scrape}")
-    for match_id in [5455384177]:#matches_to_scrape:
+    for match_id in matches_to_scrape:
         leaderboards = await leaderboard_client.send_get_latest_leaderboards([FANTASY_USER_LEADERBOARD_ID, FANTASY_PLAYER_LEADERBOARD_ID])
         user_points = next(l for l in leaderboards["data"] if "User Points" in l["name"])["leaderboard"]
+        print(user_points)
         user_points_dict = {p["player_id"]: p for p in user_points}
         player_points = next(l for l in leaderboards["data"] if "Player Points" in l["name"])["leaderboard"]
         player_points_dict = {p["player_id"]: p for p in player_points}
@@ -109,7 +111,7 @@ async def get_league_results(result_client, fantasy_client, leaderboard_client, 
         for player in odota_match_resp['players']:
             parse_player(
                 player, fantasy_league, fantasy_match_id, DOTA_TO_FANTASY_PLAYER_IDS, period_multiplier,
-                player_results, teams,
+                player_results, user_teams,
                 user_points_dict, player_points_dict
             )
 
@@ -143,7 +145,7 @@ def parse_player(
     fantasy_player_id = DOTA_TO_FANTASY_PLAYER_IDS[player["account_id"]]
     player_result = {"points": 0.0}
     for stat in fantasy_league["stat_multipliers"]:
-        odta_stats = {
+        odota_stats = {
             "first blood": "firstblood_claimed",
             "stun": "stuns",
             "GPM": "gold_per_min",
@@ -154,14 +156,14 @@ def parse_player(
             "dewards": "observer_kills",
             "observer wards": "obs_placed",
         }
-        odota_stat_name = odta_stats.get(stat["name"], stat["name"]).replace(" ", "_")
+        odota_stat_name = odota_stats.get(stat["name"], stat["name"]).replace(" ", "_")
         player_result[stat["name"]] = player[odota_stat_name]
         player_result["points"] += (
                 stat["multiplier"] * player[odota_stat_name] + period_multiplier
         )
         logger.info(f"Player points {player['name']}: {player_result['points']}")
     player_results.append(PlayerResult(
-        fantasy_match_id, fantasy_player_id, player_result
+        fantasy_match_id, fantasy_player_id, player_result, meta={'name': player['name']}
     ))
     for team_id, team in teams.items():
         if fantasy_player_id in team:
@@ -169,13 +171,13 @@ def parse_player(
             try:
                 user_points_dict[team_id]["points"] += player_result["points"]
             except KeyError:
-                new_user = {"player_id": team_id, "points": player_result["points"]}
+                new_user = {"player_id": team_id, "points": player_result["points"], "leaderboard_id": FANTASY_USER_LEADERBOARD_ID}
                 user_points_dict[team_id] = new_user
 
     try:
         player_points_dict[fantasy_player_id]["points"] += player_result["points"]
     except KeyError:
-        new_player = {"player_id": fantasy_player_id, "points": player_result["points"]}
+        new_player = {"player_id": fantasy_player_id, "points": player_result["points"], "leaderboard_id": FANTASY_PLAYER_LEADERBOARD_ID}
         player_points_dict[fantasy_player_id] = new_player
 
 
@@ -189,7 +191,7 @@ async def main():
     asyncio.create_task(result_client.run())
     asyncio.create_task(fantasy_client.run())
     asyncio.create_task(leaderboard_client.run())
-    await get_league_results(result_client, fantasy_client, leaderboard_client, 12027)
+    await get_league_results(result_client, fantasy_client, leaderboard_client, 11979)
 
 
 if __name__ == "__main__":

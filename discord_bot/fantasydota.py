@@ -362,6 +362,10 @@ class FantasyDota(commands.Cog):
         for channel in ctx.guild.channels:
             if is_draft_channel(channel):
                 await channel.delete()
+                try:
+                    self.fantasy_handler.channel_ids_to_draft_ids.pop(channel.id)
+                except Exception:
+                    logger.exception("Error clearing draft channels")
         self.confirm_flag = False
 
     @admin.command(name="nuke")
