@@ -36,7 +36,8 @@ def is_draft_channel(channel):
 
 def is_not_draft():
     async def predicate(ctx):
-        return not is_draft_channel(ctx.channel)
+        # if we are dm guild is None
+        return ctx.guild is None or not is_draft_channel(ctx.channel)  # crystal clear...
     return commands.check(predicate)
 
 

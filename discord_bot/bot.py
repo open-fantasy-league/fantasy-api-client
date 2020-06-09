@@ -228,7 +228,9 @@ class FantasyBot(commands.Bot):
 
         A default one is provided (Bot.on_command_error())
         """
-        await ctx.send(f'Input error: {error}')  # Is it safe to just be outputting the error to users?...
+        # TOMAYBEDO print out something useful to users if command fails
+        if DEV:
+            await ctx.send(f'Input error: {error}')  
         await super().on_command_error(ctx, error)
 
     async def on_command(self, ctx):
@@ -237,7 +239,8 @@ class FantasyBot(commands.Bot):
         This event is called regardless of whether the command itself succeeds via error or completes.
         """
         # TODO add which cog, module or whatever stuff is called form. atm just says "main"
-        logger.info(f'{ctx.author.name} called {ctx.command.qualified_name} with {ctx.args[2:]} from channel: {ctx.channel.name}')
+        channel_str = "private message" if ctx.guild is None else f'channel: {ctx.channel.name}'
+        logger.info(f'{ctx.author.name} called {ctx.command.qualified_name} with {ctx.args[2:]} from {channel_str}')
 
     async def on_command_completion(self, ctx):
         """An event that is called when a command has completed its invocation.
