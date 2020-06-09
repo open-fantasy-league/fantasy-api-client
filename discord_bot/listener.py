@@ -219,7 +219,7 @@ class FantasyHandler:
         now = datetime.datetime.now(tz=datetime.timezone.utc)
         filtered_choices = []
         for c in choices:
-            if len(filtered_choices) > limit:
+            if len(filtered_choices) >= limit:
                 break
             if c["choice"][-1] > now:
                 if and_time:
@@ -230,7 +230,10 @@ class FantasyHandler:
             filtered_choices = filtered_choices[1:]
         if not filtered_choices:
             return ""
-        return "**next picks:**\n\n" + ", ".join(filtered_choices)
+        if and_time:
+            return "**Drafter: " + ", ".join(filtered_choices) + "**"
+        else:
+            return "**Next:**\n\n" + ", ".join(filtered_choices)
 
     def get_user_team(self, discord_id):
         fantasy_user_id = self.discord_user_id_to_fantasy_id[discord_id]
