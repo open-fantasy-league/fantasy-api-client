@@ -157,10 +157,9 @@ class FantasyDota(commands.Cog):
         """
         # TODO
         draft_id = self.fantasy_handler.channel_ids_to_draft_ids.get(ctx.channel.id)
-        teams = {}
-        if self.fantasy_handler.draft_players_picked.get(draft_id):
-            teams = await self.fantasy_handler.client.send_get_latest_teams()
-        team_ids_to_player_ids = teams["data"]
+        team_ids_to_player_ids = (await self.fantasy_handler.client.send_get_latest_teams())["data"]
+        if not self.fantasy_handler.draft_players_picked:
+            team_ids_to_player_ids = {}
         printy = ""
         for team_id, player_ids in team_ids_to_player_ids.items():
             if not draft_id or self.fantasy_handler.team_id_to_draft_id.get(team_id) == draft_id:
