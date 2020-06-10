@@ -1,5 +1,5 @@
-import asyncio
 import datetime
+import asyncio
 import json
 import random
 import uuid
@@ -9,10 +9,15 @@ from data.dota_ids import FANTASY_LEAGUE_ID, FANTASY_USER_LEADERBOARD_ID, FANTAS
 from messages.leaderboard_msgs import Stat
 from utils.constants import DATE_FMT
 
+import os
+import dotenv
+
+dotenv.load_dotenv()
+
 
 async def add_fake_leaderboards(user_ids, leaderboard_client=None):
     if leaderboard_client is None:
-        leaderboard_client = LeaderboardWebsocketClient('0.0.0.0', 3002)
+        leaderboard_client = LeaderboardWebsocketClient(os.getenv('ADDRESS', '0.0.0.0'), 3002)
         asyncio.create_task(leaderboard_client.run())
     stats = []
     for user_id in user_ids:
