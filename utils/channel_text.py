@@ -40,3 +40,5 @@ Maximum of **2** players from the same team.
 If you do not pick before your draft-time is up, it will auto-pick from your preset `!order`.
 If you do not have one, it will select a random player for you.    
 """
+# see https://pypi.org/project/tabulate/ for options
+LEADERBOARD_FORMAT = "fancy_grid"

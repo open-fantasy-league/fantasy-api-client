@@ -10,7 +10,7 @@ from typing import Dict, Optional, List
 from clients.fantasy_websocket_client import FantasyWebsocketClient
 from clients.result_websocket_client import ResultWebsocketClient
 from clients.leaderboard_websocket_client import LeaderboardWebsocketClient
-from messages.leaderboard_msgs import SubLeague
+from messages.leaderboard_msgs import SubLeague, Leaderboard  #, Stat, LatestStat
 from messages.fantasy_msgs import SubDraft, SubUser, SubLeague, FantasyTeam, ExternalUser
 from messages.result_msgs import SubTeam
 from utils.errors import ApiException
@@ -26,7 +26,8 @@ class LeaderboardHandler:
 
     def __init__(self):
         self.client = LeaderboardWebsocketClient(os.getenv('ADDRESS', '0.0.0.0'))
-        self.leaderboards = None
+        # self.users: Optional[Dict[str, ExternalUser]] = None
+        self.leaderboards: Optional[Dict[str, Leaderboard]] = None
 
     async def start(self):
         """
@@ -62,41 +63,28 @@ class LeaderboardHandler:
         """
         logger.info("LeaderboardHandler:init_listener: send sub leagues")
         leagues_resp = await self.client.send_sub_leagues(SubLeague(all=True))
+        # !!!!NBNBNBNBNB!!!! this Leaderboard init doesnt work for the stat fields
+        # Leaderboard.leaderboard is just a list of dict objects?
+        self.leaderboards = {str(lb["leaderboard_id"]): Leaderboard(**lb) for lb in leagues_resp["data"]}
         if leagues_resp["mode"] != "resp":
             logger.error("LeaderboardHandler:init_listener: invalid response")
-            return
-        self.leaderboards = leagues_resp["data"]
+            return        
         logger.info("LeaderboardHandler:init_listener: init leaderboard callback")
         await init_leaderboard_callback(self.leaderboards)
         # updates
         logger.info("LeaderboardHandler:init_listener: start listening")
-
-
         while True:
             new_msg = await self.client.sub_events.get()
             logger.info(f"LeaderboardHandler:listener: Received new msg: {str(new_msg)[:TRUNCATED_MESSAGE_LENGTH]}")
             logger.debug(f"LeaderboardHandler:listener: Full message {pformat(new_msg)}")
-            # we shuold only get one type of message
-            #     pub struct ApiLeaderboardLatest {
-            #         pub leaderboard_id: Uuid,
-            #         pub league_id:      Uuid,
-            #         pub name:           String,
-            #         pub meta: serde_json::Value,
-            #         pub leaderboard: Vec<ApiLatestStat>,
-            #     }
-            #     pub struct ApiLatestStat {
-            #         #[sql_type = "sql_types::Uuid"]
-            #         pub player_id: Uuid,
-            #         #[sql_type = "sql_types::Uuid"]
-            #         pub leaderboard_id: Uuid,
-            #         #[sql_type = "sql_types::Double"]
-            #         pub points: f64,
-            #     }
             if new_msg["message_type"] == "leaderboard_latest":
-                # TODO update self.leaderboards with what has changed
-                # TODO update callback only leaderboards that have changed
-                updated_leaderboards = self.leaderboards
-                update_leaderboard_callback(updated_leaderboards)
+                # Seems to just give us the whole leaderboard again not a list 
+                # of latest states like it maybe should?
+                updated_leaderboard_ids = []
+                for leaderboard in new_msg["data"]:
+                    self.leaderboards[leaderboard["leaderboard_id"]] = Leaderboard(**leaderboard)
+                    updated_leaderboard_ids.append(leaderboard["leaderboard_id"])
+                update_leaderboard_callback(updated_leaderboard_ids)
             else:
                 logger.error(f'LeaderboardHandler:listener: Unexpected message type: {new_msg["message_type"]}')
 

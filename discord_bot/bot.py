@@ -8,12 +8,13 @@ import dotenv
 from discord import PermissionOverwrite
 from discord.ext import commands
 from discord.utils import get as dget # This cant go wrong surely
+from tabulate import tabulate
 
 from data.dota_ids import FANTASY_PLAYER_LEADERBOARD_ID, FANTASY_LEAGUE_ID, FANTASY_USER_LEADERBOARD_ID
 from discord_bot.listener import PlayerHandler, FantasyHandler, LeaderboardHandler
 from discord_bot.fantasydota import CATEGORY_NAME  # This is bad and will hurt us at some point
 from messages.fantasy_msgs import DraftUpdate
-from utils.channel_text import HELP_COMMAND_TEXT
+from utils.channel_text import HELP_COMMAND_TEXT, LEADERBOARD_FORMAT
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -85,14 +86,10 @@ class FantasyBot(commands.Bot):
         logger.info("FantasyBot: on init leaderboards enter")
         # for guild in self.guilds: # TODO
         guild = self.get_guild(GUILD_ID)
-        new_leaderboard = new_pro_leaderboard = None
-        for leaderboard in leaderboards:
-            if leaderboard["league_id"] == FANTASY_LEAGUE_ID:
-                if leaderboard["leaderboard_id"] == FANTASY_USER_LEADERBOARD_ID:
-                    new_leaderboard = leaderboard
-                elif leaderboard["leaderboard_id"] == FANTASY_PLAYER_LEADERBOARD_ID:
-                    new_pro_leaderboard = leaderboard
-        if new_leaderboard is None or new_pro_leaderboard is None:
+        try:
+            new_leaderboard = leaderboards[FANTASY_USER_LEADERBOARD_ID]
+            new_pro_leaderboard = leaderboards[FANTASY_PLAYER_LEADERBOARD_ID]
+        except KeyError:
             logger.error(f'FantasyBot:on_init_leaderboards: failed to find leaderboards')
             return
         leaderboard_channel = dget(guild.channels, name="leaderboard")
@@ -100,11 +97,41 @@ class FantasyBot(commands.Bot):
         if leaderboard_channel is None or pro_leaderboard_channel is None:
             logger.error('FantasyBot:on_init_leaderboards: failed to find leaderboard channels')
             return
-        await leaderboard_channel.send(new_leaderboard["name"])
-        await pro_leaderboard_channel.send(new_pro_leaderboard["name"])
+        
+        # stats here should be LatestStat objects but theyre not
+        # (well really maybe they should be Stat objects but theyre definltey not them atm!)
 
-    def on_update_leaderboards(self, leaderboards):
+        # Do user leaderboard
+        data = []
+        # data = [{self.fantasy_handler.users[stat["player_id"]].meta["discord_id"]: stat["points"]} for stat in new_leaderboard.leaderboard]
+        for stat in new_leaderboard.leaderboard:
+            member_id = self.fantasy_handler.users[stat["player_id"]].meta["discord_id"]
+            member = guild.get_member(member_id)
+            if member is None and DEV:
+                Dummy = namedtuple("Dummy", "name")
+                member = Dummy("tpain0")
+            data.append({"name": member.name, "points": stat["points"]})
+        table = tabulate(sorted(data, key=lambda x: x["points"], reverse=True),
+                         headers="keys", tablefmt=LEADERBOARD_FORMAT)
+        out = f'__**{new_leaderboard.name}**__\n```{table}```'
+        await leaderboard_channel.purge()
+        await leaderboard_channel.send(out)
+
+        # Do player leaderboard
+        data = []
+        for stat in new_pro_leaderboard.leaderboard:
+            player_name = self.player_handler.player_id_to_names[stat["player_id"]]
+            data.append({"name": player_name, "points": stat["points"]})
+        
+        table = tabulate(sorted(data, key=lambda x: x["points"], reverse=True),
+                         headers="keys", tablefmt=LEADERBOARD_FORMAT)
+        out = f'__**{new_pro_leaderboard.name}**__\n```{table}```'
+        await pro_leaderboard_channel.purge()
+        await pro_leaderboard_channel.send(out)
+
+    def on_update_leaderboards(self, updated_leaderboard_ids):
         logger.info("FantasyBot: on update leaderboards enter")
+
 
     def on_init_users(self, users):
         """Callback to initialize discord bot record of current external_users
